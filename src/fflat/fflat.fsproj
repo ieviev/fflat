@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="CompileFSharp.fs" />
+    <Compile Include="ModifyAssembly.fs" />
+    <Compile Include="Argu.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <Optimize>true</Optimize>
+    <Tailcalls>true</Tailcalls>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+    <Title>$(ProjectName)</Title>
+    <RepositoryUrl>https://github.com/ieviev/$(ProjectName)</RepositoryUrl>
+    <Authors>ieviev</Authors>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>fflat</ToolCommandName>
+    <Version>1.0.31</Version>
+    <PackageReadmeFile>content/README.md</PackageReadmeFile>
+    <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\bflat\src\bflat\bflat.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <FSharpDir>$(MSBuildBinPath)/FSharp/</FSharpDir>
+    <FsiDll>$(MSBuildBinPath)/FSharp/FSharp.Compiler.Interactive.Settings.dll</FsiDll>
+    <REF_FILES>$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Debug/net7.0/ref\**\*.*</REF_FILES>
+  </PropertyGroup>
+  <Target Name="PostBuildTask" AfterTargets="AfterBuild">
+    <Message Importance="High" Text="copying native assemblies to build dir" />
+    <Copy SourceFiles="$(FsiDll)" DestinationFolder="$(OutputPath)" />
+  </Target>
+  <ItemGroup>
+    <Content Include="..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(FsiDll)">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any</PackagePath>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/ref\**\*.*">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\ref</PackagePath>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/lib\windows\**\*.*">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\lib\windows</PackagePath>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/lib\linux\**\*.*">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\lib\linux</PackagePath>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/lib64\**\*.*">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\lib64</PackagePath>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/bin\**\*.*">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\bin</PackagePath>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libobjwriter.so">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\libobjwriter.so</PackagePath>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libjitinterface_x64.so">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\libjitinterface_x64.so</PackagePath>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libclrjit_win_x64_x64.so">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\libclrjit_win_x64_x64.so</PackagePath>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libclrjit_unix_x64_x64.so">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\libclrjit_unix_x64_x64.so</PackagePath>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libclrjit_universal_arm64_x64.so">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>\tools\$(TargetFramework)\any\libclrjit_universal_arm64_x64.so</PackagePath>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Argu" Version="6.1.1" />
+    <PackageReference Include="dnlib" Version="4.2.0" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400" />
+  </ItemGroup>
+</Project>
