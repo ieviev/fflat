@@ -29,6 +29,31 @@ module Static =
         "-Os"
     ]
 
+let compileIL (inputScript: string, args: string list) =
+
+    stdout.WriteLine $"compiling IL for %s{inputScript}..."
+    let randomFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
+
+    if not (Directory.Exists(randomFolderPath)) then
+        Directory.CreateDirectory(randomFolderPath)
+        |> ignore
+
+    // let compiledDllPath = Path.ChangeExtension(randomFolderPath, ".dll")
+    let outfile =
+        match fflatConfig.OutPath with
+        | Some outPath -> outPath
+        | None -> Path.ChangeExtension(inputScript, ".dll")
+
+    let _ =
+        inputScript
+        |> CompileFSharp.tryCompileToDll outfile
+
+    // let _ = ModifyAssembly.buildModifiedDll (compiledDllPath, compiledDllPath)
+    // File.Copy(outputDllPath, outfile, true)
+    stdout.WriteLine $"compiled IL in {outfile}"
+
+
+
 let compileWithArgs (bflatcommand: Command, inputScript: string, args: string list) =
 
     stdout.WriteLine $"compiling %s{inputScript}..."
@@ -166,16 +191,8 @@ let main argv =
             stdout.WriteLine $"fflat version {en.Version}"
         else
             match results.TryGetSubCommand() with
-            | Some(CLIArguments.``Build-il`` (args)) ->
-                let bflatArgs = args.GetResult(BuildArgs.Args)
-                let command = ILBuildCommand.Create()
-
-                compileWithArgs (
-                    command,
-                    inputScript,
-                    fflatArgs
-                    @ bflatArgs
-                )
+            | Some(CLIArguments.``Build-il``) ->
+                compileIL(inputScript,[])
             | Some(CLIArguments.``Build`` (args)) ->
                 let bflatArgs = args.GetResult(BuildArgs.Args)
                 let command = BuildCommand.Create()

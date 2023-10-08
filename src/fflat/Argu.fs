@@ -73,7 +73,7 @@ type CLIArguments =
     | [<AltCommandLine("-s")>] Small
     | [<AltCommandLine("-o")>] Output of outputFile:string
     | [<CliPrefix(CliPrefix.None); Unique>] Build of ParseResults<BuildArgs>
-    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il`` of ParseResults<BuildArgs>
+    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il``
     | [<MainCommand; Mandatory; ExactlyOnce; First>] Main of script: string
 
     interface IArgParserTemplate with
@@ -82,7 +82,7 @@ type CLIArguments =
             | Version -> "version of application"
             | Tiny -> "smallest possible executable (adds bflat args --no-reflection --no-stacktrace-data --no-exception-messages --no-debug-info --no-globalization --separate-symbols -Os). NB! avoid using printfn with this"
             | Small -> "small executable but retains reflection, stack trace and exception messages (adds bflat args --no-debug-info --no-globalization --separate-symbols -Os)"
-            | Build(_) -> "compile to native [default]"
-            | ``Build-il`` (_) -> "compile to IL"
+            | Build(_) -> "compile to native with bflat [default]"
+            | ``Build-il`` -> "compile to IL (fsc)"
             | Main(_) -> ".fsx script file path (first argument)"
             | Output(outputFile) -> "output executable path"
