@@ -46,7 +46,7 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
 
     let appCsPath = Path.ChangeExtension(compileAppPath, ".cs")
 
-    let _ =
+    let projOptions =
         inputScript
         |> CompileFSharp.tryCompileToDll compiledDllPath
 
@@ -63,13 +63,13 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
                 appCsPath
                 "-r"
                 compiledDllPath
-
                 yield!
-                    (CompileFSharp.References.allReferences
+                    (projOptions.OtherOptions
+                     |> Seq.where (fun v -> v.StartsWith "-r:")
                      |> Seq.where (fun v ->
-                         not (fflat.CompileFSharp.References.bflatExclusions.Contains(Path.GetFileName(v)))
+                         not (fflat.CompileFSharp.References.bflatExclusions.Contains(Path.GetFileName(v[3..])))
                      )
-                     |> Seq.map (fun v -> $"-r:{v}"))
+                    )
                 yield! args
                 "-o"
                 compileAppPath
