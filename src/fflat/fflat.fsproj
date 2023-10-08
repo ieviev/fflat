@@ -17,11 +17,11 @@
   <PropertyGroup>
     <PackageOutputPath>./nupkg</PackageOutputPath>
     <Title>$(ProjectName)</Title>
-    <RepositoryUrl>https://github.com/ieviev/$(ProjectName)</RepositoryUrl>
+    <RepositoryUrl>https://github.com/ieviev/fflat</RepositoryUrl>
     <Authors>ieviev</Authors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fflat</ToolCommandName>
-    <Version>1.0.31</Version>
+    <Version>1.0.33</Version>
     <PackageReadmeFile>content/README.md</PackageReadmeFile>
     <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
   </PropertyGroup>
@@ -40,12 +40,12 @@
   <ItemGroup>
     <Content Include="..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\LICENSE" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(FsiDll)">
+    <!-- <Content Include="$(FsiDll)">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any</PackagePath>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    </Content> -->
     <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/ref\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
