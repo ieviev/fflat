@@ -193,5 +193,5 @@ let main argv =
         0
 
     with e ->
-        failwith $"{e.StackTrace}"
+        // failwith $"{e.StackTrace}"
         failwith $"{e.Message}"
