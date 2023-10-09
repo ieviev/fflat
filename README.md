@@ -16,7 +16,7 @@ dotnet tool install --global fflat
 ## Basic usage
 
 ```bash
-fflat script.fsx            # a``bout 13MB, full .NET
+fflat script.fsx            # about 13MB, full .NET
 fflat script.fsx --small    # about 2.6MB, no debug/globalization/symbols
 fflat script.fsx --tiny     # about 1MB, no reflection/exceptions, no printfn!
 ```
@@ -96,7 +96,7 @@ use `--small` instead of `--tiny`, --tiny will crash if your script uses any
 reflection features.
 
 there's many untrimmable features in the F# core library like printfn, quotations and linq.
-substituting all printfn calls with stdout.Writeline will produce significantly
+substituting all printfn calls with stdout.WriteLine will produce significantly
 smaller binaries as well.
 
 
