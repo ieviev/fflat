@@ -12,7 +12,7 @@ echo "Configuration: $Configuration"
 echo "TargetFramework: $TargetFramework"
 
 ## TODO:
-exit 0
+# exit 0
 
 # copy the fflat assemblies to the output directory
 cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/ref" "$OutputPath"

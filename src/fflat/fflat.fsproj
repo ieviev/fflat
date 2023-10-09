@@ -31,7 +31,6 @@
   <PropertyGroup>
     <FSharpDir>$(MSBuildBinPath)/FSharp/</FSharpDir>
     <FsiDll>$(MSBuildBinPath)/FSharp/FSharp.Compiler.Interactive.Settings.dll</FsiDll>
-    <REF_FILES>$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Debug/net7.0/ref\**\*.*</REF_FILES>
   </PropertyGroup>
   <Target Name="PostBuildTask" AfterTargets="AfterBuild">
     <Message Importance="High" Text="copying native assemblies to build dir" />
@@ -41,61 +40,55 @@
   <ItemGroup>
     <Content Include="..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\LICENSE" CopyToOutputDirectory="PreserveNewest" />
-    <!-- <Content Include="$(FsiDll)">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any</PackagePath>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content> -->
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/ref\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/ref\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\ref</PackagePath>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/lib\windows\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/lib\windows\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\lib\windows</PackagePath>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/lib\linux\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/lib\linux\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\lib\linux</PackagePath>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/lib64\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/lib64\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\lib64</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/bin\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/bin\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\bin</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libobjwriter.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libobjwriter.so">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\libobjwriter.so</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libjitinterface_x64.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libjitinterface_x64.so">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\libjitinterface_x64.so</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libclrjit_win_x64_x64.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libclrjit_win_x64_x64.so">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\libclrjit_win_x64_x64.so</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libclrjit_unix_x64_x64.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libclrjit_unix_x64_x64.so">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\libclrjit_unix_x64_x64.so</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/net7.0/libclrjit_universal_arm64_x64.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libclrjit_universal_arm64_x64.so">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\libclrjit_universal_arm64_x64.so</PackagePath>
@@ -105,5 +98,6 @@
     <PackageReference Include="Argu" Version="6.1.1" />
     <PackageReference Include="dnlib" Version="4.2.0" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400" />
+    <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.0-alpha002" />
   </ItemGroup>
 </Project>

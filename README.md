@@ -14,7 +14,7 @@ dotnet tool install --global fflat
 ## Basic usage
 
 ```bash
-fflat script.fsx            # about 13MB, full .NET
+fflat script.fsx            # a``bout 13MB, full .NET
 fflat script.fsx --small    # about 2.6MB, no debug/globalization/symbols
 fflat script.fsx --tiny     # about 1MB, no reflection/exceptions, no printfn!
 ```
