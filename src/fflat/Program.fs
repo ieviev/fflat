@@ -38,7 +38,6 @@ let compileIL (inputScript: string, args: string list) =
         Directory.CreateDirectory(randomFolderPath)
         |> ignore
 
-    // let compiledDllPath = Path.ChangeExtension(randomFolderPath, ".dll")
     let outfile =
         match fflatConfig.OutPath with
         | Some outPath -> outPath
@@ -48,8 +47,6 @@ let compileIL (inputScript: string, args: string list) =
         inputScript
         |> CompileFSharp.tryCompileToDll outfile
 
-    // let _ = ModifyAssembly.buildModifiedDll (compiledDllPath, compiledDllPath)
-    // File.Copy(outputDllPath, outfile, true)
     stdout.WriteLine $"compiled IL in {outfile}"
 
 
@@ -210,5 +207,4 @@ let main argv =
         0
 
     with e ->
-        // failwith $"{e.StackTrace}"
         failwith $"{e.Message}"

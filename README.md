@@ -1,5 +1,7 @@
 # fflat - F# native script compiler on [bflat](https://flattened.net/)
 
+<img alt="Nuget" src="https://img.shields.io/nuget/v/fflat">
+
 ## Build 1MB native executables from .fsx scripts!
 
 ![](img/2023-10-08T04:48.png)

@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
+<!--    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>-->
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="CompileFSharp.fs" />
@@ -21,7 +22,7 @@
     <Authors>ieviev</Authors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fflat</ToolCommandName>
-    <Version>1.0.36</Version>
+    <Version>1.0.43</Version>
     <PackageReadmeFile>content/README.md</PackageReadmeFile>
     <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
   </PropertyGroup>
@@ -68,31 +69,29 @@
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\bin</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libobjwriter.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/linux-glibc-x64\*.so">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\libobjwriter.so</PackagePath>
+      <PackagePath>tools/$(TargetFramework)/any/</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libjitinterface_x64.so">
+    <!--  WINDOWS DEPENDENCIES START  -->
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\WindowsAPIs.txt">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\libjitinterface_x64.so</PackagePath>
+      <PackagePath>\tools\$(TargetFramework)\any\WindowsAPIs.txt</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libclrjit_win_x64_x64.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\*.dll">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\libclrjit_win_x64_x64.so</PackagePath>
+      <!--      <PackagePath>runtimes/win-x64/native/</PackagePath>-->
+      <PackagePath>tools/$(TargetFramework)/any/</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libclrjit_unix_x64_x64.so">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\bin\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\libclrjit_unix_x64_x64.so</PackagePath>
+      <PackagePath>tools/$(TargetFramework)/any/bin/</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/libclrjit_universal_arm64_x64.so">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\libclrjit_universal_arm64_x64.so</PackagePath>
-    </Content>
+    <!--  WINDOWS DEPENDENCIES END  -->
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.1.1" />

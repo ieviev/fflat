@@ -7,22 +7,22 @@ OutputPath=$1
 Configuration=$2
 TargetFramework=$3
 
+echo "Copying bflat dependencies from $__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/"
 echo "OutputPath: $OutputPath"
 echo "Configuration: $Configuration"
 echo "TargetFramework: $TargetFramework"
 
-## TODO:
-# exit 0
+#exit 0
 
 # copy the fflat assemblies to the output directory
-cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/ref" "$OutputPath"
-cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/lib" "$OutputPath"
-cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/lib64" "$OutputPath"
-cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/bin" "$OutputPath"
+cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/ref" "$OutputPath"
+cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/lib" "$OutputPath"
+cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/lib64" "$OutputPath"
+cp -r "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/bin" "$OutputPath"
 
 # # 
-cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/libobjwriter.so" "$OutputPath"
-cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/libjitinterface_x64.so" "$OutputPath"
-cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/libclrjit_win_x64_x64.so" "$OutputPath"
-cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/libclrjit_unix_x64_x64.so" "$OutputPath"
-cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/net7.0/libclrjit_universal_arm64_x64.so" "$OutputPath"
+cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/libobjwriter.so" "$OutputPath"
+cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/libjitinterface_x64.so" "$OutputPath"
+cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/libclrjit_win_x64_x64.so" "$OutputPath"
+cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/libclrjit_unix_x64_x64.so" "$OutputPath"
+cp "$__SOURCE_DIRECTORY__/../../bflat/src/bflat/bin/$Configuration/$TargetFramework/libclrjit_universal_arm64_x64.so" "$OutputPath"

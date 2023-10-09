@@ -481,3 +481,4 @@ src/fflat/native/
 src/fflat/lib64/
 src/fflat/lib/
 .idea/
+publish.sh

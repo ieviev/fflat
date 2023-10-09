@@ -2,13 +2,31 @@ module fflat.CompileFSharp
 
 let fscExtraArgs = [
     "--debug-"
-    "--optimize+"
-    "--tailcalls+"
-    "--reflectionfree"
-    "--crossoptimize+"
-    "--noframework"
     "--nocopyfsharpcore"
+    "--noframework"
+    "--optimize+"
+    "--reflectionfree"
+    "--tailcalls+"
     "--target:library"
+    // --
+    "--define:FFLAT"
+    "--define:NET"
+    "--define:NET5_0_OR_GREATER"
+    "--define:NET6_0_OR_GREATER"
+    "--define:NET7_0"
+    "--define:NET7_0_OR_GREATER"
+    "--define:NETCOREAPP1_0_OR_GREATER"
+    "--define:NETCOREAPP1_1_OR_GREATER"
+    "--define:NETCOREAPP2_0_OR_GREATER"
+    "--define:NETCOREAPP2_1_OR_GREATER"
+    "--define:NETCOREAPP2_2_OR_GREATER"
+    "--define:NETCOREAPP3_0_OR_GREATER"
+    "--define:NETCOREAPP3_1_OR_GREATER"
+    "--define:NETCOREAPP"
+    "--define:RELEASE"
+    "--highentropyva+"
+    "--targetprofile:netcore"
+    // "--crossoptimize+" // deprecated
 ]
 
 open System.Reflection
@@ -18,27 +36,6 @@ open FSharp.Compiler.Text
 
 
 module References =
-    let frameworkReferences =
-        lazy
-            Assembly.Load("mscorlib").Location
-            |> Path.GetDirectoryName
-            |> (fun frameworkDir ->
-                frameworkDir
-                |> Directory.EnumerateFiles
-                |> Seq.where (fun v -> v.EndsWith(".dll"))
-                |> Seq.toArray
-            )
-
-    let appDomainReferences =
-        lazy
-            System.AppDomain.CurrentDomain.BaseDirectory
-            |> Path.GetDirectoryName
-            |> (fun frameworkDir ->
-                frameworkDir
-                |> Directory.EnumerateFiles
-                |> Seq.where (fun v -> v.EndsWith(".dll"))
-                |> Seq.toArray
-            )
 
     let bflatExclusions =
         set [
@@ -48,14 +45,6 @@ module References =
             "System.Private.CoreLib.dll"
         ]
 
-    let allReferences =
-        let refs =
-            Seq.append appDomainReferences.Value frameworkReferences.Value
-            |> Seq.distinct
-            |> Seq.toArray
-        // for r in refs do
-        //     stdout.WriteLine r
-        refs
 
 let tryCompileToDll (outputDllPath: string) fsxFilePath =
     let checker = FSharpChecker.Create()
@@ -75,17 +64,6 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
             )
 
         let temporaryDllFile = outputDllPath
-        // let tempFile = $"{Path.GetTempFileName()}.fsx"
-        // let mergedScript =
-        //     String.concat "\n" [
-        //         for f in projOpts.SourceFiles do
-        //             yield!
-        //                 File.ReadLines f
-        //                 |> Seq.where (fun v -> not (v.StartsWith("#r \"nuget:")))
-        //     ]
-        // File.WriteAllText(tempFile, mergedScript)
-        // File.WriteAllText("/home/ian/Desktop/temp-disk/fflat-samples/test.fsx", mergedScript)
-        // stdout.WriteLine $"%A{projOpts.SourceFiles}"
 
         let filteredSourceFiles =
             projOpts.SourceFiles
