@@ -4,6 +4,7 @@
 
 ![](img/2023-10-08T04:48.png)
 
+
 ## Installation
 
 ```
@@ -21,7 +22,6 @@ fflat script.fsx --tiny     # about 1MB, no reflection/exceptions, no printfn!
 run `fflat --help` for a list of options
 
 ## Advanced usage
-
 
 ```bash
 fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
@@ -74,6 +74,29 @@ bflat options:
                                            'preview', or version like '6' or '7.1'
   -?, -h, --help                           Show help and usage information
 ```
+
+## Common questions, troubleshooting
+
+
+> Why?
+
+there is almost a 1000x difference in startup time for dotnet fsi scripts using nuget!
+
+![](img/2023-10-09T17:12.png)
+
+there is also [FSharpPacker](https://github.com/kant2002/FSharpPacker/tree/main) for .fsx scripts, which compiles .fsx scripts to native executables using the standard MSBuild pipeline (PublishAOT), but [bflat](https://flattened.net/) can produce significantly smaller executables or even omit the .NET runtime/GC all together.
+
+
+
+> `TypeInitialization_Type_NoTypeAvailable` errors
+
+use `--small` instead of `--tiny`, --tiny will crash if your script uses any 
+reflection features.
+
+there's many untrimmable features in the F# core library like printfn, quotations and linq.
+substituting all printfn calls with stdout.Writeline will produce significantly
+smaller binaries as well.
+
 
 ---
 
