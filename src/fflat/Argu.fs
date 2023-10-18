@@ -66,6 +66,17 @@ type BuildArgs =
             | Args(_) -> "__BFLAT_ARGS__"
 
 
+
+[<RequireQualifiedAccess>]
+type BuildILArgs =
+    | Verbose
+
+    interface IArgParserTemplate with
+        member this.Usage =
+            match this with
+            | Verbose -> "todo: make fsc arguments available here"
+
+
 [<RequireQualifiedAccess>]
 type CLIArguments =
     | Version
@@ -73,7 +84,7 @@ type CLIArguments =
     | [<AltCommandLine("-s")>] Small
     | [<AltCommandLine("-o")>] Output of outputFile:string
     | [<CliPrefix(CliPrefix.None); Unique>] Build of ParseResults<BuildArgs>
-    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il``
+    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il`` of ParseResults<BuildILArgs>
     | [<MainCommand; Mandatory; ExactlyOnce; First>] Main of script: string
 
     interface IArgParserTemplate with
@@ -83,6 +94,6 @@ type CLIArguments =
             | Tiny -> "smallest possible executable (adds bflat args --no-reflection --no-stacktrace-data --no-exception-messages --no-debug-info --no-globalization --separate-symbols -Os). NB! avoid using printfn with this"
             | Small -> "small executable but retains reflection, stack trace and exception messages (adds bflat args --no-debug-info --no-globalization --separate-symbols -Os)"
             | Build(_) -> "compile to native with bflat [default]"
-            | ``Build-il`` -> "compile to IL (fsc)"
+            | ``Build-il`` (_) -> "compile to IL (fsc)"
             | Main(_) -> ".fsx script file path (first argument)"
             | Output(outputFile) -> "output executable path"

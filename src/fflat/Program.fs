@@ -125,16 +125,17 @@ let main argv =
         let errorHandler =
             { new IExiter with
                 member this.Exit(msg: string, errorCode: ErrorCode) =
+                    // override default because argu doesn't print help arguments in correct order
                     match errorCode with
-                    | Argu.ErrorCode.HelpText when msg.StartsWith "USAGE: fflat build" ->
+                    | Argu.ErrorCode.HelpText when msg.StartsWith "USAGE: fflat build " ->
                         stdout.WriteLine "Usage:"
-                        stdout.WriteLine "  fflat <script> [fflat options] build|build-il [<>...] [bflat options]"
+                        stdout.WriteLine "  fflat <script> [fflat options] build [<>...] [bflat options]"
                         stdout.WriteLine Argu.FFLAT_HELP_EXTRA
                         stdout.WriteLine Argu.BFLAT_HELP
                         exit 0
                     | _ when msg.Contains("__BFLAT_ARGS__") ->
                         stdout.WriteLine "Usage:"
-                        stdout.WriteLine "  fflat <script> [fflat options] build|build-il [<>...] [bflat options]"
+                        stdout.WriteLine "  fflat <script> [fflat options] build [<>...] [bflat options]"
                         stdout.WriteLine Argu.FFLAT_HELP_EXTRA
                         stdout.WriteLine Argu.BFLAT_HELP
                         exit 0
@@ -188,7 +189,7 @@ let main argv =
             stdout.WriteLine $"fflat version {en.Version}"
         else
             match results.TryGetSubCommand() with
-            | Some(CLIArguments.``Build-il``) ->
+            | Some(CLIArguments.``Build-il``(args)) ->
                 compileIL(inputScript,[])
             | Some(CLIArguments.``Build`` (args)) ->
                 let bflatArgs = args.GetResult(BuildArgs.Args)
