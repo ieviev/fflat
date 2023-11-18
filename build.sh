@@ -22,22 +22,22 @@ else
         | tee bflat/src/bflat/bflat.csproj > /dev/null
 fi
 
-if grep -q '<TargetFramework>net6.0</TargetFramework>' "bflat/src/bflat/bflat.csproj"; then
-    echo "bumping bflat framework from net6.0 to net7.0"
-    cat bflat/src/bflat/bflat.csproj \
-          | sed -E 's|(<TargetFramework>net6.0</TargetFramework>)|<TargetFramework>net7.0</TargetFramework>|g' \
-          | tee bflat/src/bflat/bflat.csproj > /dev/null
+ if grep -q '<TargetFramework>net6.0</TargetFramework>' "bflat/src/bflat/bflat.csproj"; then
+     echo "bumping bflat framework from net6.0 to net8.0"
+     cat bflat/src/bflat/bflat.csproj \
+           | sed -E 's|(<TargetFramework>net6.0</TargetFramework>)|<TargetFramework>net8.0</TargetFramework>|g' \
+           | tee bflat/src/bflat/bflat.csproj > /dev/null
           
-    cat bflat/src/debloat/debloat.csproj \
-        | sed -E 's|(<TargetFramework>net6.0</TargetFramework>)|<TargetFramework>net7.0</TargetFramework>|g' \
-        | tee bflat/src/debloat/debloat.csproj > /dev/null
-else
-    echo "bflat target framework ok"
-fi
+     cat bflat/src/debloat/debloat.csproj \
+         | sed -E 's|(<TargetFramework>net6.0</TargetFramework>)|<TargetFramework>net8.0</TargetFramework>|g' \
+         | tee bflat/src/debloat/debloat.csproj > /dev/null
+ else
+     echo "bflat target framework ok"
+ fi
 
 echo ""
 echo "NOTE:" 
-echo "  the project currently only builds on linux/wsl/mac because it runs some .sh scripts to move/modify files"
+echo "  the project currently only builds on linux/wsl because it runs some .sh scripts to move/modify files"
 echo "  if you want to build on windows, you'll need to run the tasks in src/fflat/postbuild.sh yourself"
 
 

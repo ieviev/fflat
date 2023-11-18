@@ -85,7 +85,7 @@ type CLIArguments =
     | [<AltCommandLine("-o")>] Output of outputFile:string
     | [<CliPrefix(CliPrefix.None); Unique>] Build of ParseResults<BuildArgs>
     | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il`` of ParseResults<BuildILArgs>
-    | [<MainCommand; Mandatory; ExactlyOnce; First>] Main of script: string
+    | [<MainCommand;  First>] Main of script: string
 
     interface IArgParserTemplate with
         member s.Usage =

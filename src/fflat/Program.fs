@@ -60,7 +60,8 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
         Directory.CreateDirectory(randomFolderPath)
         |> ignore
 
-    let compiledDllPath = Path.ChangeExtension(randomFolderPath, ".dll")
+    // let compiledDllPath = Path.ChangeExtension(randomFolderPath, ".dll")
+    let compiledDllPath = Path.ChangeExtension(Path.GetFileNameWithoutExtension inputScript, ".dll")
 
     let appDir = randomFolderPath
 
@@ -120,6 +121,9 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
 
 [<EntryPoint>]
 let main argv =
+    // so mac people would know instead of a vague not supported error
+    if OperatingSystem.IsMacOS() then
+        failwith "the bflat compiler does not support MacOS!"
     try
 
         let errorHandler =
@@ -161,33 +165,34 @@ let main argv =
 
         let results = parser.Parse(argv)
 
-        let inputScript =
-            match results.GetResult(CLIArguments.Main) with
-            | f when f.EndsWith(".fsx") -> f
-            | f when f.EndsWith(".fs") -> f
-            | _ -> failwith "first argument must be a .fsx or .fs file"
-
-        let fflatArgs =
-            if results.TryGetResult(CLIArguments.Tiny).IsSome then
-                tinyArgs
-            elif results.TryGetResult(CLIArguments.Small).IsSome then
-                smallArgs
-            else
-                []
-
-        match results.TryGetResult(CLIArguments.Output) with
-        | Some str ->
-            fflatConfig <- {|
-                fflatConfig with
-                    OutPath = Some str
-            |}
-        | _ -> ()
-
         if results.Contains CLIArguments.Version then
             let entry = System.Reflection.Assembly.GetEntryAssembly()
             let en = entry.GetName()
             stdout.WriteLine $"fflat version {en.Version}"
         else
+
+            let inputScript =
+                match results.GetResult(CLIArguments.Main) with
+                | f when f.EndsWith(".fsx") -> f
+                | f when f.EndsWith(".fs") -> f
+                | _ -> failwith "first argument must be a .fsx or .fs file"
+
+            let fflatArgs =
+                if results.TryGetResult(CLIArguments.Tiny).IsSome then
+                    tinyArgs
+                elif results.TryGetResult(CLIArguments.Small).IsSome then
+                    smallArgs
+                else
+                    []
+
+            match results.TryGetResult(CLIArguments.Output) with
+            | Some str ->
+                fflatConfig <- {|
+                    fflatConfig with
+                        OutPath = Some str
+                |}
+            | _ -> ()
+
             match results.TryGetSubCommand() with
             | Some(CLIArguments.``Build-il``(args)) ->
                 compileIL(inputScript,[])

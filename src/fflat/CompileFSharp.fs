@@ -1,5 +1,7 @@
 module fflat.CompileFSharp
 
+open System
+
 let fscExtraArgs = [
     "--debug-"
     "--nocopyfsharpcore"
@@ -65,10 +67,15 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
 
         let temporaryDllFile = outputDllPath
 
+        let nugetCachePath =
+            let userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            Path.Combine(userFolder, ".packagemanagement", "nuget")
+
         let filteredSourceFiles =
             projOpts.SourceFiles
             |> Seq.where (fun v ->
                 not (v.EndsWith(".fsproj.fsx"))
+                && not (v.StartsWith(nugetCachePath))
             )
 
         // let fsharpCoreIndex =

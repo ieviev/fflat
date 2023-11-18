@@ -22,7 +22,7 @@
     <Authors>ieviev</Authors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fflat</ToolCommandName>
-    <Version>1.0.44</Version>
+    <Version>1.0.46</Version>
     <PackageReadmeFile>content/README.md</PackageReadmeFile>
     <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
   </PropertyGroup>
@@ -96,7 +96,7 @@
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.1.1" />
     <PackageReference Include="dnlib" Version="4.2.0" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400" />
-    <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.0-alpha002" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.100" />
+    <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.0" />
   </ItemGroup>
 </Project>
