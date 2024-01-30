@@ -112,9 +112,10 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
 let watchCompileToDll (outputDllPath: string) (fsxFilePath:string) =
     async {
         let checker = FSharpChecker.Create()
-        let dir = Path.GetDirectoryName(fsxFilePath)
-        let fileName = Path.GetFileName(fsxFilePath)
-        let watcher = new FileSystemWatcher(dir,fileName,EnableRaisingEvents=true, IncludeSubdirectories=false)
+        let fullPath = Path.GetFullPath(fsxFilePath)
+        let fullDir = Path.GetDirectoryName(fullPath)
+        let fileName = Path.GetFileName(fullPath)
+        let watcher = new FileSystemWatcher(fullDir,fileName,EnableRaisingEvents=true, IncludeSubdirectories=false)
 
         let rec loop (nextproctime:DateTimeOffset)  = async {
             let _ = watcher.WaitForChanged(WatcherChangeTypes.Changed)
