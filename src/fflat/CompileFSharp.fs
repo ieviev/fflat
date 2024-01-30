@@ -107,4 +107,67 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
 
             return exit 1
     }
-    |> Async.RunSynchronously
+
+
+let watchCompileToDll (outputDllPath: string) (fsxFilePath:string) =
+    async {
+        let checker = FSharpChecker.Create()
+        let dir = Path.GetDirectoryName(fsxFilePath)
+        let fileName = Path.GetFileName(fsxFilePath)
+        let watcher = new FileSystemWatcher(dir,fileName,EnableRaisingEvents=true, IncludeSubdirectories=false)
+
+        let rec loop (nextproctime:DateTimeOffset)  = async {
+            let _ = watcher.WaitForChanged(WatcherChangeTypes.Changed)
+            stdout.Write $"compiling {fileName}.. "
+            match DateTimeOffset.Now > nextproctime with 
+            | false -> return! loop (nextproctime) 
+            | true ->
+                let sourceText =
+                    File.ReadAllText(fsxFilePath)
+                    |> SourceText.ofString
+                let! projOpts, _ =
+                    checker.GetProjectOptionsFromScript(
+                        fsxFilePath,
+                        sourceText,
+                        assumeDotNetFramework = false,
+                        useFsiAuxLib = true,
+                        useSdkRefs = true
+                    )
+                let temporaryDllFile = outputDllPath
+
+                let nugetCachePath =
+                    let userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                    Path.Combine(userFolder, ".packagemanagement", "nuget")
+                    
+                let filteredSourceFiles =
+                    projOpts.SourceFiles
+                    |> Seq.where (fun v ->
+                        not (v.EndsWith(".fsproj.fsx"))
+                        && not (v.StartsWith(nugetCachePath))
+                    )
+                let! compileResult, exitCode =
+                    checker.Compile(
+                        [|
+                            yield! projOpts.OtherOptions
+                            yield! fscExtraArgs
+                            $"--out:{temporaryDllFile}"
+                            yield!
+                                (projOpts.ReferencedProjects
+                                 |> Array.map (fun v -> v.OutputFile))
+
+                            yield! filteredSourceFiles
+                        |]
+                    )
+                match exitCode with
+                | 0 ->
+                    stdout.WriteLine $"compiled {outputDllPath}"
+                | _ ->
+                    stdout.WriteLine $"error: "
+                    compileResult
+                    |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
+                return! loop (nextproctime.AddSeconds(0.5))
+        }
+              
+        return! loop DateTimeOffset.Now
+    }
+  

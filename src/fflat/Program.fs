@@ -29,9 +29,15 @@ module Static =
         "-Os"
     ]
 
-let compileIL (inputScript: string, args: string list) =
 
-    stdout.WriteLine $"compiling IL for %s{inputScript}..."
+
+
+
+
+
+let compileIL (inputScript: string, args: string list, parseResults: ParseResults<BuildILArgs>) =
+
+    
     let randomFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
 
     if not (Directory.Exists(randomFolderPath)) then
@@ -43,11 +49,19 @@ let compileIL (inputScript: string, args: string list) =
         | Some outPath -> outPath
         | None -> Path.ChangeExtension(inputScript, ".dll")
 
-    let _ =
+    let compileToDll() =
         inputScript
         |> CompileFSharp.tryCompileToDll outfile
+        |> Async.RunSynchronously
 
-    stdout.WriteLine $"compiled IL in {outfile}"
+    match parseResults.TryGetResult(BuildILArgs.Watch) with
+    | Some _ ->
+        stdout.WriteLine $"watching {inputScript}, waiting for changes.."
+        CompileFSharp.watchCompileToDll outfile inputScript |> Async.RunSynchronously
+    | _ ->
+        stdout.WriteLine $"compiling IL for %s{inputScript}..."
+        compileToDll() |> ignore
+        stdout.WriteLine $"compiled IL in {outfile}"
 
 
 
@@ -72,6 +86,7 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
     let projOptions =
         inputScript
         |> CompileFSharp.tryCompileToDll compiledDllPath
+        |> Async.RunSynchronously
 
     let _ = ModifyAssembly.buildModifiedDll (compiledDllPath, compiledDllPath)
 
@@ -195,7 +210,7 @@ let main argv =
 
             match results.TryGetSubCommand() with
             | Some(CLIArguments.``Build-il``(args)) ->
-                compileIL(inputScript,[])
+                compileIL(inputScript,[], args)
             | Some(CLIArguments.``Build`` (args)) ->
                 let bflatArgs = args.GetResult(BuildArgs.Args)
                 let command = BuildCommand.Create()

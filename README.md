@@ -29,6 +29,13 @@ run `fflat --help` for a list of options
 fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
 ```
 
+using fflat to as an interface to the F# compiler
+```bash
+fflat ./mylibrary.fsx build-il --watch ## quickly recompiles mylibrary.dll on every change 
+```
+
+#### all options
+
 ```bash
 ❯ fflat ./helloworld.fsx build --help
 Usage:
