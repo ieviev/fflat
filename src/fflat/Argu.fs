@@ -10,10 +10,10 @@ fflat options:
     -t, --tiny                            Smallest possible executable (adds bflat args
                                           --no-reflection --no-globalization --no-stacktrace-data
                                           --no-exception-messages --no-debug-info
-                                          --separate-symbols -Os). avoid using printfn!
+                                          --separate-symbols -Ot). avoid using printfn!
     -s, --small                           small executable but retains reflection, stack trace
                                           and exception messages (adds bflat args --no-debug-info
-                                          --no-globalization --separate-symbols -Os)
+                                          --no-globalization --separate-symbols -Ot)
     --output, -o <outputFile>             output executable path"""
 
 [<Literal>]

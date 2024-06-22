@@ -2,6 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <BflatFramework>net8.0</BflatFramework>
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
@@ -21,7 +22,7 @@
     <Authors>ieviev</Authors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fflat</ToolCommandName>
-    <Version>1.0.48</Version>
+    <Version>1.0.49</Version>
     <PackageReadmeFile>content/README.md</PackageReadmeFile>
     <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
   </PropertyGroup>
@@ -34,36 +35,36 @@
   </PropertyGroup>
   <Target Name="PostBuildTask" AfterTargets="AfterBuild">
     <Message Importance="High" Text="copying native assemblies to build dir" />
-    <Exec Command="bash $(ProjectDir)postbuild.sh '$(OutputPath)' '$(Configuration)' '$(TargetFramework)'" Condition="'$(OS)' != 'Windows_NT'" />
+    <Exec Command="bash $(ProjectDir)postbuild.sh '$(OutputPath)' '$(Configuration)' '$(TargetFramework)' '$(BflatFramework)'" Condition="'$(OS)' != 'Windows_NT'" />
     <Copy SourceFiles="$(FsiDll)" DestinationFolder="$(OutputPath)" />
   </Target>
   <ItemGroup>
     <Content Include="..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\LICENSE" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/ref\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/ref\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\ref</PackagePath>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/lib\windows\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/lib\windows\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\lib\windows</PackagePath>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/lib\linux\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/lib\linux\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\lib\linux</PackagePath>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/lib64\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/lib64\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\lib64</PackagePath>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(TargetFramework)/bin\**\*.*">
+    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/bin\**\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>\tools\$(TargetFramework)\any\bin</PackagePath>
@@ -93,9 +94,10 @@
     <!--  WINDOWS DEPENDENCIES END  -->
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Argu" Version="6.1.1" />
-    <PackageReference Include="dnlib" Version="4.2.0" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.100" />
-    <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.0" />
+    <PackageReference Include="Argu" Version="6.2.4" />
+    <PackageReference Include="dnlib" Version="4.4.0" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.300" />
+    <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.3" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
 </Project>

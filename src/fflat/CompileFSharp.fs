@@ -15,8 +15,9 @@ let fscExtraArgs = [
     "--define:NET"
     "--define:NET5_0_OR_GREATER"
     "--define:NET6_0_OR_GREATER"
-    "--define:NET7_0"
     "--define:NET7_0_OR_GREATER"
+    "--define:NET8_0_OR_GREATER"
+    "--define:NET8_0"
     "--define:NETCOREAPP1_0_OR_GREATER"
     "--define:NETCOREAPP1_1_OR_GREATER"
     "--define:NETCOREAPP2_0_OR_GREATER"
@@ -38,8 +39,7 @@ open FSharp.Compiler.Text
 
 
 module References =
-
-    let bflatExclusions =
+    let bflatStdlib =
         set [
             "netstandard.dll"
             "System.Core.dll"

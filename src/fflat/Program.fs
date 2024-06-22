@@ -16,7 +16,7 @@ module Static =
         "--no-debug-info"
         "--no-globalization"
         "--separate-symbols"
-        "-Os"
+        "-Ot"
     ]
 
     let tinyArgs = [
@@ -26,7 +26,7 @@ module Static =
         "--no-reflection"
         "--no-stacktrace-data"
         "--separate-symbols"
-        "-Os"
+        "-Ot"
     ]
 
 
@@ -88,7 +88,7 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
         |> CompileFSharp.tryCompileToDll compiledDllPath
         |> Async.RunSynchronously
 
-    let _ = ModifyAssembly.buildModifiedDll (compiledDllPath, compiledDllPath)
+    let _ = ModifyAssembly.buildModifiedDll(compiledDllPath, compiledDllPath)
 
     File.WriteAllText(appCsPath, "FSharpScript.Program.Main();")
 
@@ -105,7 +105,7 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
                     (projOptions.OtherOptions
                      |> Seq.where (fun v -> v.StartsWith "-r:")
                      |> Seq.where (fun v ->
-                         not (fflat.CompileFSharp.References.bflatExclusions.Contains(Path.GetFileName(v[3..])))
+                         not (fflat.CompileFSharp.References.bflatStdlib.Contains(Path.GetFileName(v[3..])))
                      )
                     )
                 yield! args
@@ -124,7 +124,7 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
                             Path.ChangeExtension(inputScript, ".exe")
                         else
                             Path.GetFileNameWithoutExtension(inputScript)
-
+                File.Delete(compiledDllPath)
                 File.Copy(compileAppPath, outfile, true)
                 stdout.WriteLine $"compiled {outfile}"
         }
