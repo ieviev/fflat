@@ -25,13 +25,19 @@ run `fflat --help` for a list of options
 
 ## Advanced usage
 
+arm64 executable
 ```bash
-fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
+fflat script.fsx --tiny build --arch arm64 # 1.2MB and runs on raspberry pi! 👍
 ```
 
 using fflat to as an interface to the F# compiler
 ```bash
 fflat ./mylibrary.fsx build-il --watch ## quickly recompiles mylibrary.dll on every change 
+```
+
+bflat arguments are specified after `build`
+```bash
+fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
 ```
 
 #### all options
@@ -45,10 +51,10 @@ fflat options:
     -t, --tiny                            Smallest possible executable (adds bflat args
                                           --no-reflection --no-globalization --no-stacktrace-data
                                           --no-exception-messages --no-debug-info
-                                          --separate-symbols -Os). avoid using printfn!
+                                          --separate-symbols -Ot). avoid using printfn!
     -s, --small                           small executable but retains reflection, stack trace
                                           and exception messages (adds bflat args --no-debug-info
-                                          --no-globalization --separate-symbols -Os)
+                                          --no-globalization --separate-symbols -Ot)
     --output, -o <outputFile>             output executable path
 
 bflat options:
