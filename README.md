@@ -40,7 +40,13 @@ bflat arguments are specified after `build`
 fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
 ```
 
-## Shared library
+## Shared library (experimental)
+
+```bash
+fflat script.fsx [--tiny|--small] build-shared [bflat args]
+```
+
+https://github.com/ieviev/fflat/assets/36763595/25fa6c53-d406-48cb-88c7-3fdd4ac460ad
 
 
 
