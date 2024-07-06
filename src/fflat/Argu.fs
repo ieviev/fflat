@@ -78,6 +78,15 @@ type BuildILArgs =
             | Verbose -> "todo: make fsc arguments available here"
             | Watch -> "recompile dll on changes to .fsx"
 
+[<RequireQualifiedAccess>]
+type BuildLibArgs =
+    | [<MainCommand; Last>] Args of string list
+
+    interface IArgParserTemplate with
+        member this.Usage =
+            match this with
+            | Args l -> "__BFLAT_ARGS__"
+
 
 [<RequireQualifiedAccess>]
 type CLIArguments =
@@ -87,6 +96,7 @@ type CLIArguments =
     | [<AltCommandLine("-o")>] Output of outputFile:string
     | [<CliPrefix(CliPrefix.None); Unique>] Build of ParseResults<BuildArgs>
     | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il`` of ParseResults<BuildILArgs>
+    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-shared`` of ParseResults<BuildLibArgs>
     | [<MainCommand;  First>] Main of script: string
 
     interface IArgParserTemplate with
@@ -99,3 +109,4 @@ type CLIArguments =
             | ``Build-il`` (_) -> "compile to IL (using fsc)"
             | Main(_) -> ".fsx script file path (first argument)"
             | Output(outputFile) -> "output executable path"
+            | ``Build-shared``(_) -> "compile to shared library"

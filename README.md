@@ -40,12 +40,16 @@ bflat arguments are specified after `build`
 fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
 ```
 
+## Shared library
+
+
+
 #### all options
 
 ```bash
 ❯ fflat ./helloworld.fsx build --help
 Usage:
-  fflat <script> [fflat options] build|build-il [<>...] [bflat options]
+  fflat <script> [fflat options] build|build-il|build-shared [<>...] [bflat options]
 
 fflat options:
     -t, --tiny                            Smallest possible executable (adds bflat args

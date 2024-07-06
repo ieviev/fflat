@@ -3,6 +3,7 @@ open System.CommandLine
 open System.IO
 open fflat
 open Argu
+open Common
 
 
 [<AutoOpen>]
@@ -30,14 +31,54 @@ module Static =
     ]
 
 
+let compileLib (parseResults: ParseResults<BuildLibArgs>) (inputScript: string) (args: string list)  =
+    let randomFolderPath = Directory.getRandomFolder()
+    Directory.createIfNotExists(randomFolderPath)
+    let outputPath =
+        match fflatConfig.OutPath with
+        | Some outPath -> outPath
+        | None -> File.toSharedLibraryName(inputScript)
+
+    let fsharpDllPath = Path.Combine(randomFolderPath, "__LIB_NAME.dll")
+    let projOptions, assembly =
+        inputScript
+        |> CompileFSharp.tryCompileToInMemory fsharpDllPath
+        |> (_.GetAwaiter().GetResult())
+
+    let command = BuildCommand.Create()
+    File.WriteAllBytes(fsharpDllPath, assembly)
+    let libraryWrapper = SharedLibrary.generateLibraryWrapper(assembly)
+    let libraryWrapperPath = Path.Combine(randomFolderPath, "Application.cs")
+    let compiledFile = File.toSharedLibraryName libraryWrapperPath
+    File.WriteAllText(libraryWrapperPath, libraryWrapper)
+    let commandArgs = [|
+        "build"
+        libraryWrapperPath
+        "-r"
+        fsharpDllPath
+        yield!
+            (projOptions.OtherOptions
+             |> Seq.where (fun v -> v.StartsWith "-r:")
+             |> Seq.where (fun v ->
+                 not (fflat.CompileFSharp.References.bflatStdlib.Contains(Path.GetFileName(v[3..])))
+             )
+            )
+        yield! args
+        "--target"
+        "shared"
+        "-o"
+        compiledFile
+    |]
+    match command.Invoke(commandArgs) with
+    | n when n <> 0 -> failwith "compilation failed"
+    | _ ->
+        File.Delete(fsharpDllPath)
+        File.Copy(compiledFile, outputPath, true)
+        stdout.WriteLine $"compiled {outputPath}"
 
 
+let compileIL (parseResults: ParseResults<BuildILArgs>) (inputScript: string) (args: string list) =
 
-
-
-let compileIL (inputScript: string, args: string list, parseResults: ParseResults<BuildILArgs>) =
-
-    
     let randomFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
 
     if not (Directory.Exists(randomFolderPath)) then
@@ -52,7 +93,7 @@ let compileIL (inputScript: string, args: string list, parseResults: ParseResult
     let compileToDll() =
         inputScript
         |> CompileFSharp.tryCompileToDll outfile
-        |> Async.RunSynchronously
+        |> (fun v -> v.GetAwaiter().GetResult())
 
     match parseResults.TryGetResult(BuildILArgs.Watch) with
     | Some _ ->
@@ -65,8 +106,8 @@ let compileIL (inputScript: string, args: string list, parseResults: ParseResult
 
 
 
-let compileWithArgs (bflatcommand: Command, inputScript: string, args: string list) =
-
+let compileWithArgs (inputScript: string) (args: string list) =
+    let command = BuildCommand.Create()
     stdout.WriteLine $"compiling %s{inputScript}..."
     let randomFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
 
@@ -86,16 +127,14 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
     let projOptions =
         inputScript
         |> CompileFSharp.tryCompileToDll compiledDllPath
-        |> Async.RunSynchronously
+        |> (fun v -> v.GetAwaiter().GetResult())
 
     let _ = ModifyAssembly.buildModifiedDll(compiledDllPath, compiledDllPath)
 
     File.WriteAllText(appCsPath, "FSharpScript.Program.Main();")
 
-    let handler =
+    let toExecutable() =
         task {
-            let buildCommand = bflatcommand
-
             let commandArgs = [|
                 "build"
                 appCsPath
@@ -113,7 +152,7 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
                 compileAppPath
             |]
 
-            match buildCommand.Invoke(commandArgs) with
+            match command.Invoke(commandArgs) with
             | n when n <> 0 -> failwith "compilation failed"
             | _ ->
                 let outfile =
@@ -128,10 +167,7 @@ let compileWithArgs (bflatcommand: Command, inputScript: string, args: string li
                 File.Copy(compileAppPath, outfile, true)
                 stdout.WriteLine $"compiled {outfile}"
         }
-
-    handler
-    |> Async.AwaitTask
-    |> Async.RunSynchronously
+    toExecutable().Wait()
 
 
 [<EntryPoint>]
@@ -140,38 +176,11 @@ let main argv =
     if OperatingSystem.IsMacOS() then
         failwith "the bflat compiler does not support MacOS!"
     try
-
         let errorHandler =
             { new IExiter with
                 member this.Exit(msg: string, errorCode: ErrorCode) =
-                    // override default because argu doesn't print help arguments in correct order
-                    match errorCode with
-                    | Argu.ErrorCode.HelpText when msg.StartsWith "USAGE: fflat build " ->
-                        stdout.WriteLine "Usage:"
-                        stdout.WriteLine "  fflat <script> [fflat options] build [<>...] [bflat options]"
-                        stdout.WriteLine Argu.FFLAT_HELP_EXTRA
-                        stdout.WriteLine Argu.BFLAT_HELP
-                        exit 0
-                    | _ when msg.Contains("__BFLAT_ARGS__") ->
-                        stdout.WriteLine "Usage:"
-                        stdout.WriteLine "  fflat <script> [fflat options] build [<>...] [bflat options]"
-                        stdout.WriteLine Argu.FFLAT_HELP_EXTRA
-                        stdout.WriteLine Argu.BFLAT_HELP
-                        exit 0
-                    | _ ->
-                        // override default usage
-                        let i1 = msg.IndexOf("USAGE:")
-
-                        let i2 =
-                            msg.IndexOf("\n", i1 + 1)
-                            + 1
-
-                        stdout.WriteLine
-                            "USAGE: fflat <script> [--help] [--version] [--tiny] [--small] [<subcommand> [<options>]]"
-
-                        stdout.WriteLine msg[i2..]
-                        exit 0
-
+                    stderr.WriteLine(msg)
+                    exit 1
                 member this.Name: string = "_"
             }
 
@@ -182,8 +191,7 @@ let main argv =
 
         if results.Contains CLIArguments.Version then
             let entry = System.Reflection.Assembly.GetEntryAssembly()
-            let en = entry.GetName()
-            stdout.WriteLine $"fflat version {en.Version}"
+            stdout.WriteLine $"fflat version {entry.GetName().Version}"
         else
 
             let inputScript =
@@ -207,23 +215,19 @@ let main argv =
                         OutPath = Some str
                 |}
             | _ -> ()
-
             match results.TryGetSubCommand() with
+            | Some(CLIArguments.``Build-shared``(args)) ->
+                let bflatArgs = args.TryGetResult(BuildLibArgs.Args) |> Option.defaultValue []
+                compileLib args inputScript (fflatArgs @ bflatArgs)
             | Some(CLIArguments.``Build-il``(args)) ->
-                compileIL(inputScript,[], args)
+                compileIL args (inputScript) []
             | Some(CLIArguments.``Build`` (args)) ->
                 let bflatArgs = args.GetResult(BuildArgs.Args)
-                let command = BuildCommand.Create()
-
-                compileWithArgs (
-                    command,
-                    inputScript,
-                    fflatArgs
-                    @ bflatArgs
-                )
+                compileWithArgs
+                    inputScript
+                    (fflatArgs @ bflatArgs)
             | _ ->
-                let command = BuildCommand.Create()
-                compileWithArgs (command, inputScript, fflatArgs)
+                compileWithArgs inputScript fflatArgs
 
         0
 

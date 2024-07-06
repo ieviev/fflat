@@ -3,7 +3,7 @@ module fflat.CompileFSharp
 open System
 
 let fscExtraArgs = [
-    "--debug-"
+    // "--debug-"
     "--nocopyfsharpcore"
     "--noframework"
     "--optimize+"
@@ -55,7 +55,7 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
         File.ReadAllText(fsxFilePath)
         |> SourceText.ofString
 
-    async {
+    task {
         let! projOpts, _ =
             checker.GetProjectOptionsFromScript(
                 fsxFilePath,
@@ -116,12 +116,11 @@ let watchCompileToDll (outputDllPath: string) (fsxFilePath:string) =
         let fullDir = Path.GetDirectoryName(fullPath)
         let fileName = Path.GetFileName(fullPath)
         let watcher = new FileSystemWatcher(fullDir,fileName,EnableRaisingEvents=true, IncludeSubdirectories=false)
-
         let rec loop (nextproctime:DateTimeOffset)  = async {
             let _ = watcher.WaitForChanged(WatcherChangeTypes.Changed)
             stdout.Write $"compiling {fileName}.. "
-            match DateTimeOffset.Now > nextproctime with 
-            | false -> return! loop (nextproctime) 
+            match DateTimeOffset.Now > nextproctime with
+            | false -> return! loop (nextproctime)
             | true ->
                 let sourceText =
                     File.ReadAllText(fsxFilePath)
@@ -139,7 +138,7 @@ let watchCompileToDll (outputDllPath: string) (fsxFilePath:string) =
                 let nugetCachePath =
                     let userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
                     Path.Combine(userFolder, ".packagemanagement", "nuget")
-                    
+
                 let filteredSourceFiles =
                     projOpts.SourceFiles
                     |> Seq.where (fun v ->
@@ -168,7 +167,74 @@ let watchCompileToDll (outputDllPath: string) (fsxFilePath:string) =
                     |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
                 return! loop (nextproctime.AddSeconds(0.5))
         }
-              
+
         return! loop DateTimeOffset.Now
     }
-  
+
+type MemoryFileSystem()=
+    inherit FSharp.Compiler.IO.DefaultFileSystem()
+    member val InMemoryStream = new MemoryStream()
+    override this.CopyShim(src, dest, overwrite) =
+        base.CopyShim(src, dest, overwrite)
+    override this.OpenFileForWriteShim(_, _, _, _) =
+        this.InMemoryStream
+
+let tryCompileToInMemory (outputDllPath: string) fsxFilePath =
+    let defaultFS = FSharp.Compiler.IO.FileSystemAutoOpens.FileSystem
+    let memoryFS = MemoryFileSystem()
+    FSharp.Compiler.IO.FileSystemAutoOpens.FileSystem <- memoryFS
+
+    let checker = FSharpChecker.Create()
+
+    let sourceText =
+        File.ReadAllText(fsxFilePath)
+        |> SourceText.ofString
+
+    task {
+        let! projOpts, _ =
+            checker.GetProjectOptionsFromScript(
+                fsxFilePath,
+                sourceText,
+                assumeDotNetFramework = false,
+                useFsiAuxLib = true,
+                useSdkRefs = true
+            )
+
+        let temporaryDllFile = outputDllPath
+
+        let nugetCachePath =
+            let userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            Path.Combine(userFolder, ".packagemanagement", "nuget")
+
+        let filteredSourceFiles =
+            projOpts.SourceFiles
+            |> Seq.where (fun v ->
+                not (v.EndsWith(".fsproj.fsx"))
+                && not (v.StartsWith(nugetCachePath))
+            )
+
+        let! compileResult, exitCode =
+            checker.Compile(
+                [|
+                    yield! projOpts.OtherOptions
+                    yield! fscExtraArgs
+                    $"--out:{temporaryDllFile}"
+                    yield!
+                        (projOpts.ReferencedProjects
+                         |> Array.map (fun v -> v.OutputFile))
+
+                    yield! filteredSourceFiles
+                |]
+            )
+
+        match exitCode with
+        | 0 ->
+            let assembly = memoryFS.InMemoryStream.ToArray()
+            FSharp.Compiler.IO.FileSystemAutoOpens.FileSystem <- defaultFS
+            return projOpts, assembly
+        | _ ->
+            compileResult
+            |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
+
+            return exit 1
+    }
