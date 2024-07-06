@@ -60,6 +60,7 @@ let generateLibraryWrapper(fsharpAssembly:byte[]) =
     pubModules
     |> Seq.collect (fun v ->
         v.Methods
+        |> Seq.where (_.Attributes.HasFlag(MethodAttributes.Public))
         |> Seq.map (fun met ->
             {
                 Name = met.Name.String
