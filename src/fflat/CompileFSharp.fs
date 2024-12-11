@@ -9,7 +9,9 @@ let fscExtraArgs = [
     "--optimize+"
     "--reflectionfree"
     "--tailcalls+"
-    "--target:library"
+    // "--target:library"
+    // "--target:exe"
+    "--nowin32manifest"
     // --
     "--define:FFLAT"
     "--define:NET"
@@ -29,7 +31,7 @@ let fscExtraArgs = [
     "--define:RELEASE"
     "--highentropyva+"
     "--targetprofile:netcore"
-    // "--crossoptimize+" // deprecated
+// "--crossoptimize+" // deprecated
 ]
 
 open System.Reflection
@@ -48,12 +50,10 @@ module References =
         ]
 
 
-let tryCompileToDll (outputDllPath: string) fsxFilePath =
+let tryCompileToDll (options: Common.CompileOptions) (outputDllPath: string) fsxFilePath =
     let checker = FSharpChecker.Create()
 
-    let sourceText =
-        File.ReadAllText(fsxFilePath)
-        |> SourceText.ofString
+    let sourceText = File.ReadAllText(fsxFilePath) |> SourceText.ofString
 
     task {
         let! projOpts, _ =
@@ -62,7 +62,8 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
                 sourceText,
                 assumeDotNetFramework = false,
                 useFsiAuxLib = true,
-                useSdkRefs = true
+                useSdkRefs = true,
+                previewEnabled = true
             )
 
         let temporaryDllFile = outputDllPath
@@ -73,10 +74,7 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
 
         let filteredSourceFiles =
             projOpts.SourceFiles
-            |> Seq.where (fun v ->
-                not (v.EndsWith(".fsproj.fsx"))
-                && not (v.StartsWith(nugetCachePath))
-            )
+            |> Seq.where (fun v -> not (v.EndsWith(".fsproj.fsx")) && not (v.StartsWith(nugetCachePath)))
 
         // let fsharpCoreIndex =
         //     projOpts.OtherOptions
@@ -88,12 +86,13 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
         let! compileResult, exitCode =
             checker.Compile(
                 [|
+                    match options.Target with
+                    | BuildTargetType.Shared -> "--target:library"
+                    | _ -> "--target:exe"
                     yield! projOpts.OtherOptions
                     yield! fscExtraArgs
                     $"--out:{temporaryDllFile}"
-                    yield!
-                        (projOpts.ReferencedProjects
-                         |> Array.map (fun v -> v.OutputFile))
+                    yield! (projOpts.ReferencedProjects |> Array.map (fun v -> v.OutputFile))
 
                     yield! filteredSourceFiles
                 |]
@@ -102,93 +101,89 @@ let tryCompileToDll (outputDllPath: string) fsxFilePath =
         match exitCode with
         | 0 -> return projOpts
         | _ ->
-            compileResult
-            |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
+            compileResult |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
 
             return exit 1
     }
 
 
-let watchCompileToDll (outputDllPath: string) (fsxFilePath:string) =
+let watchCompileToDll (outputDllPath: string) (fsxFilePath: string) =
     async {
         let checker = FSharpChecker.Create()
         let fullPath = Path.GetFullPath(fsxFilePath)
         let fullDir = Path.GetDirectoryName(fullPath)
         let fileName = Path.GetFileName(fullPath)
-        let watcher = new FileSystemWatcher(fullDir,fileName,EnableRaisingEvents=true, IncludeSubdirectories=false)
-        let rec loop (nextproctime:DateTimeOffset)  = async {
-            let _ = watcher.WaitForChanged(WatcherChangeTypes.Changed)
-            stdout.Write $"compiling {fileName}.. "
-            match DateTimeOffset.Now > nextproctime with
-            | false -> return! loop (nextproctime)
-            | true ->
-                let sourceText =
-                    File.ReadAllText(fsxFilePath)
-                    |> SourceText.ofString
-                let! projOpts, _ =
-                    checker.GetProjectOptionsFromScript(
-                        fsxFilePath,
-                        sourceText,
-                        assumeDotNetFramework = false,
-                        useFsiAuxLib = true,
-                        useSdkRefs = true
-                    )
-                let temporaryDllFile = outputDllPath
 
-                let nugetCachePath =
-                    let userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-                    Path.Combine(userFolder, ".packagemanagement", "nuget")
+        let watcher =
+            new FileSystemWatcher(fullDir, fileName, EnableRaisingEvents = true, IncludeSubdirectories = false)
 
-                let filteredSourceFiles =
-                    projOpts.SourceFiles
-                    |> Seq.where (fun v ->
-                        not (v.EndsWith(".fsproj.fsx"))
-                        && not (v.StartsWith(nugetCachePath))
-                    )
-                let! compileResult, exitCode =
-                    checker.Compile(
-                        [|
-                            yield! projOpts.OtherOptions
-                            yield! fscExtraArgs
-                            $"--out:{temporaryDllFile}"
-                            yield!
-                                (projOpts.ReferencedProjects
-                                 |> Array.map (fun v -> v.OutputFile))
+        let rec loop(nextproctime: DateTimeOffset) =
+            async {
+                let _ = watcher.WaitForChanged(WatcherChangeTypes.Changed)
+                stdout.Write $"compiling {fileName}.. "
 
-                            yield! filteredSourceFiles
-                        |]
-                    )
-                match exitCode with
-                | 0 ->
-                    stdout.WriteLine $"compiled {outputDllPath}"
-                | _ ->
-                    stdout.WriteLine $"error: "
-                    compileResult
-                    |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
-                return! loop (nextproctime.AddSeconds(0.5))
-        }
+                match DateTimeOffset.Now > nextproctime with
+                | false -> return! loop (nextproctime)
+                | true ->
+                    let sourceText = File.ReadAllText(fsxFilePath) |> SourceText.ofString
+
+                    let! projOpts, _ =
+                        checker.GetProjectOptionsFromScript(
+                            fsxFilePath,
+                            sourceText,
+                            assumeDotNetFramework = false,
+                            useFsiAuxLib = true,
+                            useSdkRefs = true
+                        )
+
+                    let temporaryDllFile = outputDllPath
+
+                    let nugetCachePath =
+                        let userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                        Path.Combine(userFolder, ".packagemanagement", "nuget")
+
+                    let filteredSourceFiles =
+                        projOpts.SourceFiles
+                        |> Seq.where (fun v -> not (v.EndsWith(".fsproj.fsx")) && not (v.StartsWith(nugetCachePath)))
+
+                    let! compileResult, exitCode =
+                        checker.Compile(
+                            [|
+                                yield! projOpts.OtherOptions
+                                yield! fscExtraArgs
+                                $"--out:{temporaryDllFile}"
+                                yield! (projOpts.ReferencedProjects |> Array.map (fun v -> v.OutputFile))
+
+                                yield! filteredSourceFiles
+                            |]
+                        )
+
+                    match exitCode with
+                    | 0 -> stdout.WriteLine $"compiled {outputDllPath}"
+                    | _ ->
+                        stdout.WriteLine $"error: "
+                        compileResult |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
+
+                    return! loop (nextproctime.AddSeconds(0.5))
+            }
 
         return! loop DateTimeOffset.Now
     }
 
-type MemoryFileSystem()=
+type MemoryFileSystem(memory) =
     inherit FSharp.Compiler.IO.DefaultFileSystem()
-    member val InMemoryStream = new MemoryStream()
-    override this.CopyShim(src, dest, overwrite) =
-        base.CopyShim(src, dest, overwrite)
-    override this.OpenFileForWriteShim(_, _, _, _) =
-        this.InMemoryStream
+    member val InMemoryStream = memory
+    override this.CopyShim(src, dest, overwrite) = base.CopyShim(src, dest, overwrite)
+    override this.OpenFileForWriteShim(_, _, _, _) = this.InMemoryStream
 
-let tryCompileToInMemory (outputDllPath: string) fsxFilePath =
-    let defaultFS = FSharp.Compiler.IO.FileSystemAutoOpens.FileSystem
-    let memoryFS = MemoryFileSystem()
+let tryCompileToInMemory (options:Common.CompileOptions) (memory: MemoryStream) fsxFilePath =
+    let memoryFS = MemoryFileSystem(memory)
     FSharp.Compiler.IO.FileSystemAutoOpens.FileSystem <- memoryFS
 
     let checker = FSharpChecker.Create()
 
-    let sourceText =
-        File.ReadAllText(fsxFilePath)
-        |> SourceText.ofString
+    let sourceText = File.ReadAllText(fsxFilePath) |> SourceText.ofString
+    let outputDllPath = Path.ChangeExtension(fsxFilePath, ".dll")
 
     task {
         let! projOpts, _ =
@@ -208,33 +203,26 @@ let tryCompileToInMemory (outputDllPath: string) fsxFilePath =
 
         let filteredSourceFiles =
             projOpts.SourceFiles
-            |> Seq.where (fun v ->
-                not (v.EndsWith(".fsproj.fsx"))
-                && not (v.StartsWith(nugetCachePath))
-            )
+            |> Seq.where (fun v -> not (v.EndsWith(".fsproj.fsx")) && not (v.StartsWith(nugetCachePath)))
 
         let! compileResult, exitCode =
             checker.Compile(
                 [|
+                    match options.Target with
+                    | BuildTargetType.Shared -> "--target:library"
+                    | _ -> "--target:exe"
                     yield! projOpts.OtherOptions
                     yield! fscExtraArgs
                     $"--out:{temporaryDllFile}"
-                    yield!
-                        (projOpts.ReferencedProjects
-                         |> Array.map (fun v -> v.OutputFile))
+                    yield! (projOpts.ReferencedProjects |> Array.map (fun v -> v.OutputFile))
 
                     yield! filteredSourceFiles
                 |]
             )
 
         match exitCode with
-        | 0 ->
-            let assembly = memoryFS.InMemoryStream.ToArray()
-            FSharp.Compiler.IO.FileSystemAutoOpens.FileSystem <- defaultFS
-            return projOpts, assembly
+        | 0 -> return projOpts
         | _ ->
-            compileResult
-            |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
-
+            compileResult |> Array.iter stderr.WriteLine
             return exit 1
     }

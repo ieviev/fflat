@@ -482,3 +482,9 @@ src/fflat/lib64/
 src/fflat/lib/
 .idea/
 publish.sh
+samples/*
+!samples/*.fsx
+# dll files
+*.dll
+*.trace.json
+*.trace.speedscope.json

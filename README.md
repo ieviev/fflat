@@ -4,7 +4,7 @@
 
 ## Build 1MB native executables from .fsx scripts!
 
-![](img/2023-10-08T04:48.png)
+![](img/helloworld.png)
 
 
 ## Installation
@@ -16,9 +16,8 @@ dotnet tool install --global fflat
 ## Basic usage
 
 ```bash
-fflat script.fsx            # about 13MB, full .NET
-fflat script.fsx --small    # about 2.6MB, no debug/globalization/symbols
-fflat script.fsx --tiny     # about 1MB, no reflection/exceptions, no printfn!
+fflat script.fsx             # about 1.4M, no debug/globalization/symbols
+fflat script.fsx --small     # about 1MB, no reflection/exceptions, no printfn!
 ```
 
 run `fflat --help` for a list of options
@@ -27,7 +26,7 @@ run `fflat --help` for a list of options
 
 arm64 executable
 ```bash
-fflat script.fsx --tiny build --arch arm64 # 1.2MB and runs on raspberry pi! 👍
+fflat script.fsx --small build --arch arm64 # 1.2MB and runs on raspberry pi! 👍
 ```
 
 using fflat to as an interface to the F# compiler
@@ -40,64 +39,47 @@ bflat arguments are specified after `build`
 fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
 ```
 
+
 ## Shared library (experimental)
 
 ```bash
-fflat script.fsx [--tiny|--small] build-shared [bflat args]
+fflat script.fsx [--small] build-shared
 ```
-
-https://github.com/ieviev/fflat/assets/36763595/25fa6c53-d406-48cb-88c7-3fdd4ac460ad
-
-
 
 #### all options
 
 ```bash
-❯ fflat ./helloworld.fsx build --help
-Usage:
-  fflat <script> [fflat options] build|build-il|build-shared [<>...] [bflat options]
+MAIN:
 
-fflat options:
-    -t, --tiny                            Smallest possible executable (adds bflat args
-                                          --no-reflection --no-globalization --no-stacktrace-data
-                                          --no-exception-messages --no-debug-info
-                                          --separate-symbols -Ot). avoid using printfn!
-    -s, --small                           small executable but retains reflection, stack trace
-                                          and exception messages (adds bflat args --no-debug-info
-                                          --no-globalization --separate-symbols -Ot)
-    --output, -o <outputFile>             output executable path
+    <script>              .fsx script file path (first argument)
 
-bflat options:
-  -d, --define <define>                    Define conditional compilation symbol(s)
-  -r, --reference <file list>              Additional .NET assemblies to include
-  --target <Exe|Shared|WinExe>             Build target
-  -o, --out <file>                         Output file path
-  -c                                       Produce object file, but don't run linker
-  --ldflags <ldflags>                      Arguments to pass to the linker
-  -x                                       Print the commands
-  --arch <x64|arm64>                       Target architecture
-  --os <linux|windows|uefi>                Target operating system
-  --libc <libc>                            Target libc (Windows: shcrt|none, Linux: glibc|bionic)
-  -Os, --optimize-space                    Favor code space when optimizing
-  -Ot, --optimize-time                     Favor code speed when optimizing
-  -O0, --no-optimization                   Disable optimizations
-  --no-reflection                          Disable support for reflection
-  --no-stacktrace-data                     Disable support for textual stack traces
-  --no-globalization                       Disable support for globalization (use invariant mode)
-  --no-exception-messages                  Disable exception messages
-  --no-pie                                 Do not generate position independent executable
-  --separate-symbols                       Separate debugging symbols (Linux)
-  --no-debug-info                          Disable generation of debug information
-  --map <file>                             Generate an object map file
-  -i <library|library!function>            Bind to entrypoint statically
-  --feature <Feature=[true|false]>         Set feature switch value
-  -res <<file>[,<name>[,public|private]]>  Managed resource to include
-  --stdlib <DotNet|None|Zero>              C# standard library to use
-  --deterministic                          Produce deterministic outputs including timestamps
-  --verbose                                Enable verbose logging
-  --langversion <langversion>              C# language version ('latest', 'default', 'latestmajor',
-                                           'preview', or version like '6' or '7.1'
-  -?, -h, --help                           Show help and usage information
+SUBCOMMANDS:
+
+    build <options>       compile to native with bflat [default]
+    build-il <options>    compile to IL (using fsc)
+    build-shared <options>
+                          compile to shared library
+
+    Use 'fflat <subcommand> --help' for additional information.
+
+OPTIONS:
+
+    --verbose, -v         verbose output
+    --version             version of application
+    --ldflags <string>    <ldflags>
+    --noreflection        disable reflection
+    --arch <unknown|arm|arm64|x64|x86|wasm32|loongarch64>
+                          <x64|arm64>
+    --os <unknown|windows|linux|uefi>
+                          <linux|windows|uefi>
+    --optimize <none|prefersize|blended|preferspeed>
+                          <preferspeed|prefersize>
+    --tiny, -t            smallest possible executable. NB! avoid using printfn with this
+    --small, -s           small executable but retains reflection, stack trace and exception
+                          messages
+    --output, -o <outputFile>
+                          output executable path
+    --help                display this list of options.
 ```
 
 ## Common questions, troubleshooting

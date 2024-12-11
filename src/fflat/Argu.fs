@@ -1,112 +1,51 @@
 module Argu
 
 open Argu
-
-
-[<Literal>]
-let FFLAT_HELP_EXTRA =
-    """
-fflat options:
-    -t, --tiny                            Smallest possible executable (adds bflat args
-                                          --no-reflection --no-globalization --no-stacktrace-data
-                                          --no-exception-messages --no-debug-info
-                                          --separate-symbols -Ot). avoid using printfn!
-    -s, --small                           small executable but retains reflection, stack trace
-                                          and exception messages (adds bflat args --no-debug-info
-                                          --no-globalization --separate-symbols -Ot)
-    --output, -o <outputFile>             output executable path"""
-
-[<Literal>]
-let BFLAT_HELP =
-    """
-Arguments:
-  <file list>
-
-bflat options:
-  -d, --define <define>                    Define conditional compilation symbol(s)
-  -r, --reference <file list>              Additional .NET assemblies to include
-  --target <Exe|Shared|WinExe>             Build target
-  -o, --out <file>                         Output file path
-  -c                                       Produce object file, but don't run linker
-  --ldflags <ldflags>                      Arguments to pass to the linker
-  -x                                       Print the commands
-  --arch <x64|arm64>                       Target architecture
-  --os <linux|windows|uefi>                Target operating system
-  --libc <libc>                            Target libc (Windows: shcrt|none, Linux: glibc|bionic)
-  -Os, --optimize-space                    Favor code space when optimizing
-  -Ot, --optimize-time                     Favor code speed when optimizing
-  -O0, --no-optimization                   Disable optimizations
-  --no-reflection                          Disable support for reflection
-  --no-stacktrace-data                     Disable support for textual stack traces
-  --no-globalization                       Disable support for globalization (use invariant mode)
-  --no-exception-messages                  Disable exception messages
-  --no-pie                                 Do not generate position independent executable
-  --separate-symbols                       Separate debugging symbols (Linux)
-  --no-debug-info                          Disable generation of debug information
-  --map <file>                             Generate an object map file
-  -i <library|library!function>            Bind to entrypoint statically
-  --feature <Feature=[true|false]>         Set feature switch value
-  -res <<file>[,<name>[,public|private]]>  Managed resource to include
-  --stdlib <DotNet|None|Zero>              C# standard library to use
-  --deterministic                          Produce deterministic outputs including timestamps
-  --verbose                                Enable verbose logging
-  --langversion <langversion>              C# language version ('latest', 'default', 'latestmajor',
-                                           'preview', or version like '6' or '7.1'
-  -?, -h, --help                           Show help and usage information
-"""
-
+open ILCompiler
 
 [<RequireQualifiedAccess>]
 type BuildArgs =
-    | [<MainCommand; Last>] Args of string list
-
-    interface IArgParserTemplate with
-        member this.Usage =
-            match this with
-            | Args(_) -> "__BFLAT_ARGS__"
-
-
-
-[<RequireQualifiedAccess>]
-type BuildILArgs =
-    | Verbose
     | Watch
 
     interface IArgParserTemplate with
         member this.Usage =
             match this with
-            | Verbose -> "todo: make fsc arguments available here"
             | Watch -> "recompile dll on changes to .fsx"
-
-[<RequireQualifiedAccess>]
-type BuildLibArgs =
-    | [<MainCommand; Last>] Args of string list
-
-    interface IArgParserTemplate with
-        member this.Usage =
-            match this with
-            | Args l -> "__BFLAT_ARGS__"
 
 
 [<RequireQualifiedAccess>]
 type CLIArguments =
+    | [<AltCommandLine("-v"); Unique>] Verbose
     | Version
-    | [<AltCommandLine("-t")>] Tiny
-    | [<AltCommandLine("-s")>] Small
-    | [<AltCommandLine("-o")>] Output of outputFile:string
+    | Ldflags of string
+    | [<Unique>] NoReflection
+    | [<Unique>] Arch of Internal.TypeSystem.TargetArchitecture
+    | [<Unique>] Stdlib of StandardLibType
+    | [<Unique>] Os of TargetOS
+    | [<Unique>] Optimize of OptimizationMode
+    | [<AltCommandLine("-r")>] Reference of string
+    | [<AltCommandLine("-s"); Unique>] Small
+    | [<AltCommandLine("-o"); Unique>] Output of outputFile: string
     | [<CliPrefix(CliPrefix.None); Unique>] Build of ParseResults<BuildArgs>
-    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il`` of ParseResults<BuildILArgs>
-    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-shared`` of ParseResults<BuildLibArgs>
-    | [<MainCommand;  First>] Main of script: string
+    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il`` of ParseResults<BuildArgs>
+    | [<CliPrefix(CliPrefix.None); Unique>] ``Build-shared`` of ParseResults<BuildArgs>
+    | [<MainCommand; First>] Main of script: string
 
     interface IArgParserTemplate with
         member s.Usage =
             match s with
             | Version -> "version of application"
-            | Tiny -> "smallest possible executable (adds bflat args --no-reflection --no-stacktrace-data --no-exception-messages --no-debug-info --no-globalization --separate-symbols -Os). NB! avoid using printfn with this"
-            | Small -> "small executable but retains reflection, stack trace and exception messages (adds bflat args --no-debug-info --no-globalization --separate-symbols -Os)"
+            | Small -> "smallest possible executable. NB! substitute printfn with this"
             | Build(_) -> "compile to native with bflat [default]"
             | ``Build-il`` (_) -> "compile to IL (using fsc)"
             | Main(_) -> ".fsx script file path (first argument)"
             | Output(outputFile) -> "output executable path"
-            | ``Build-shared``(_) -> "compile to shared library"
+            | ``Build-shared`` (_) -> "compile to shared library"
+            | Ldflags(_) -> "<ldflags>"
+            | Arch(_) -> "<x64|arm64> "
+            | Os(_) -> "<linux|windows|uefi>"
+            | Verbose -> "verbose output"
+            | NoReflection -> "disable reflection"
+            | Optimize(_) -> "<preferspeed|prefersize>"
+            | Reference(_) -> "dotnet dll references"
+            | Stdlib(_) -> "standard lib type"

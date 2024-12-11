@@ -3,14 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <BflatFramework>net8.0</BflatFramework>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
+    <!-- <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies> -->
+    <!-- <PublishReadyToRun>true</PublishReadyToRun> -->
+    <PublishReadyToRun>false</PublishReadyToRun>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Common.fs" />
     <Compile Include="CompileFSharp.fs" />
-    <Compile Include="ModifyAssembly.fs" />
-    <Compile Include="SharedLibrary.fs" />
     <Compile Include="Argu.fs" />
+    <Compile Include="Compiler.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -24,12 +26,16 @@
     <Authors>ieviev</Authors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fflat</ToolCommandName>
-    <Version>1.0.53</Version>
+    <Version>2.0.5</Version>
     <PackageReadmeFile>content/README.md</PackageReadmeFile>
     <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\bflat\src\bflat\bflat.csproj" />
+    <ProjectReference Include="..\..\bflat\src\bflat\bflat.csproj">
+      <PrivateAssets>all</PrivateAssets>
+      <!-- <ExcludeAssets>contentFiles;runtime;native;build;buildTransitive;analyzers</ExcludeAssets> -->
+      <!-- <ExcludeAssets>contentFiles;runtime;native;build;analyzers</ExcludeAssets> -->
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <FSharpDir>$(MSBuildBinPath)/FSharp/</FSharpDir>
@@ -37,69 +43,42 @@
   </PropertyGroup>
   <Target Name="PostBuildTask" AfterTargets="AfterBuild">
     <Message Importance="High" Text="copying native assemblies to build dir" />
-    <Exec Command="bash $(ProjectDir)postbuild.sh '$(OutputPath)' '$(Configuration)' '$(TargetFramework)' '$(BflatFramework)'" Condition="'$(OS)' != 'Windows_NT'" />
+    <!-- <Exec Command="bash $(ProjectDir)postbuild.sh '$(OutputPath)' '$(Configuration)' '$(TargetFramework)' '$(BflatFramework)'" Condition="'$(OS)' != 'Windows_NT'" /> -->
     <Copy SourceFiles="$(FsiDll)" DestinationFolder="$(OutputPath)" />
   </Target>
+  <!-- .so dependencies -->
+  <ItemGroup>
+    <!-- <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts\linux-glibc-x64\*.so" Pack="true" PackagePath="runtimes/linux-x64/native/" /> -->
+  </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\LICENSE" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/ref\**\*.*">
+    <None Include="$(MSBuildThisFileDirectory)..\..\bflat\layouts\linux-glibc-x64\**\*.*">
       <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\ref</PackagePath>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/lib\windows\**\*.*">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\lib\windows</PackagePath>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/lib\linux\**\*.*">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\lib\linux</PackagePath>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/lib64\**\*.*">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\lib64</PackagePath>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/src/bflat/bin/Release/$(BflatFramework)/bin\**\*.*">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\bin</PackagePath>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/linux-glibc-x64\*.so">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>tools/$(TargetFramework)/any/</PackagePath>
-    </Content>
+      <!-- <PackageCopyToOutput>true</PackageCopyToOutput> -->
+      <PackagePath>\tools\$(TargetFramework)\any</PackagePath>
+      <!-- duplicates -->
+      <!-- <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory> -->
+    </None>
     <!--  WINDOWS DEPENDENCIES START  -->
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\WindowsAPIs.txt">
+    <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\*.dll">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>\tools\$(TargetFramework)\any\WindowsAPIs.txt</PackagePath>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\*.dll">
-      <Pack>true</Pack>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <!--      <PackagePath>runtimes/win-x64/native/</PackagePath>-->
       <PackagePath>tools/$(TargetFramework)/any/</PackagePath>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\bin\*.*">
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\bin\*.*">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>tools/$(TargetFramework)/any/bin/</PackagePath>
-    </Content>
+    </None>
     <!--  WINDOWS DEPENDENCIES END  -->
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.2.4" />
-    <PackageReference Include="dnlib" Version="4.4.0" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.300" />
-    <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.3" />
+    <!-- <PackageReference Include="dnlib" Version="4.4.0" /> -->
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.100" />
+    <!-- dropped because outdated fsharp core -->
+    <!-- <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.3" /> -->
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
 </Project>
