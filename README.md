@@ -26,7 +26,7 @@ run `fflat --help` for a list of options
 
 arm64 executable
 ```bash
-fflat script.fsx --small build --arch arm64 # 1.2MB and runs on raspberry pi! 👍
+fflat script.fsx --arch arm64 # 1.4MB and runs on raspberry pi! 👍
 ```
 
 using fflat to as an interface to the F# compiler

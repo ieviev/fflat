@@ -5,8 +5,8 @@
     <BflatFramework>net8.0</BflatFramework>
     <TargetFramework>net9.0</TargetFramework>
     <!-- <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies> -->
-    <!-- <PublishReadyToRun>true</PublishReadyToRun> -->
-    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- <PublishReadyToRun>false</PublishReadyToRun> -->
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Common.fs" />
@@ -26,7 +26,7 @@
     <Authors>ieviev</Authors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fflat</ToolCommandName>
-    <Version>2.0.5</Version>
+    <Version>2.0.8</Version>
     <PackageReadmeFile>content/README.md</PackageReadmeFile>
     <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
   </PropertyGroup>
