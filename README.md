@@ -34,11 +34,9 @@ using fflat to as an interface to the F# compiler
 fflat ./mylibrary.fsx build-il --watch ## quickly recompiles mylibrary.dll on every change 
 ```
 
-bflat arguments are specified after `build`
 ```bash
-fflat ./helloworld.fsx --small build -x -r "mylibrary.dll" --os windows ## ... etc
+fflat ./helloworld.fsx --small --os windows ## ... etc
 ```
-
 
 ## Shared library (experimental)
 
