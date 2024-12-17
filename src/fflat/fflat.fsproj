@@ -6,7 +6,6 @@
     <TargetFramework>net9.0</TargetFramework>
     <!-- <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies> -->
     <PublishReadyToRun>true</PublishReadyToRun>
-    <!-- <PublishReadyToRun>false</PublishReadyToRun> -->
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Common.fs" />
@@ -43,7 +42,7 @@
   </PropertyGroup>
   <Target Name="PostBuildTask" AfterTargets="AfterBuild">
     <Message Importance="High" Text="copying native assemblies to build dir" />
-    <!-- <Exec Command="bash $(ProjectDir)postbuild.sh '$(OutputPath)' '$(Configuration)' '$(TargetFramework)' '$(BflatFramework)'" Condition="'$(OS)' != 'Windows_NT'" /> -->
+    <Exec Command="bash $(ProjectDir)postbuild.sh '$(OutputPath)' '$(Configuration)' '$(TargetFramework)' '$(BflatFramework)'" Condition="'$(OS)' != 'Windows_NT'" />
     <Copy SourceFiles="$(FsiDll)" DestinationFolder="$(OutputPath)" />
   </Target>
   <!-- .so dependencies -->

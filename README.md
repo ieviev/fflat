@@ -10,8 +10,13 @@
 ## Installation
 
 ```
+# install the dependencies (on a debian-based system)
+apt install -y libc++-dev
+# install the global tool
 dotnet tool install --global fflat
 ```
+
+see `./Dockerfile` for a self-contained example
 
 ## Basic usage
 

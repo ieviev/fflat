@@ -14,11 +14,16 @@ module Static =
 
 let loadNativeDependencies(appRoot: string) =
     let openLib(path: string) =
-        match System.Runtime.InteropServices.NativeLibrary.TryLoad(System.IO.Path.Combine(appRoot, path)) with
+        let libpath = System.IO.Path.Combine(appRoot, path)
+        match System.Runtime.InteropServices.NativeLibrary.TryLoad(libpath) with
         | true, _ -> ()
         | false, _ ->
-            stderr.WriteLine $"failed to find native library, set LD_LIBRARY_PATH to find {path}"
-            exit 1
+            if File.Exists(libpath) then
+                stderr.WriteLine $"failed to load native library {path}, are you missing dependencies?"
+                exit 1
+            else
+                stderr.WriteLine $"failed to find native library, set LD_LIBRARY_PATH to find {path} in {appRoot}"
+                exit 1
 
     // todo: unsure where it crashes on windows
     if OperatingSystem.IsLinux() then
