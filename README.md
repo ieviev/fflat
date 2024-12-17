@@ -77,9 +77,7 @@ OPTIONS:
                           <linux|windows|uefi>
     --optimize <none|prefersize|blended|preferspeed>
                           <preferspeed|prefersize>
-    --tiny, -t            smallest possible executable. NB! avoid using printfn with this
-    --small, -s           small executable but retains reflection, stack trace and exception
-                          messages
+    --small, -s           omits most useful features like reflection, exceptions, but produces smaller binaries
     --output, -o <outputFile>
                           output executable path
     --help                display this list of options.
@@ -96,17 +94,19 @@ there is almost a 1000x difference in startup time for dotnet fsi scripts using 
 
 there is also [FSharpPacker](https://github.com/kant2002/FSharpPacker/tree/main) for .fsx scripts, which compiles .fsx scripts to native executables using the standard MSBuild pipeline (PublishAOT), but [bflat](https://flattened.net/) can produce significantly smaller executables or even omit the .NET runtime/GC all together.
 
+> What's the smallest executable I can get?
 
+there is a sample in `./samples/zerolib_16kb.fsx` that produces a 16kb executable with the 
+[zerolib](https://github.com/bflattened/bflat/tree/master/src/zerolib) standard library. This excludes almost all of .NET and the F# core library. however it's not very useful and you'll have to write implementations for even basic features like `for` loops.
 
 > `TypeInitialization_Type_NoTypeAvailable` errors
 
-use `--small` instead of `--tiny`, --tiny will crash if your script uses any 
+don't use `--small`, `--small` will crash if your script uses any 
 reflection features.
 
 there's many untrimmable features in the F# core library like printfn, quotations and linq.
 substituting all printfn calls with stdout.WriteLine will produce significantly
 smaller binaries as well.
-
 
 ---
 
