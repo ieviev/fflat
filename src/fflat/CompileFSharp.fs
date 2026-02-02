@@ -19,7 +19,8 @@ let fscExtraArgs = [
     "--define:NET6_0_OR_GREATER"
     "--define:NET7_0_OR_GREATER"
     "--define:NET8_0_OR_GREATER"
-    "--define:NET8_0"
+    "--define:NET9_0_OR_GREATER"
+    "--define:NET10_0"
     "--define:NETCOREAPP1_0_OR_GREATER"
     "--define:NETCOREAPP1_1_OR_GREATER"
     "--define:NETCOREAPP2_0_OR_GREATER"
@@ -46,7 +47,7 @@ module References =
             "netstandard.dll"
             "System.Core.dll"
             "mscorlib.dll"
-            // "System.Private.CoreLib.dll"
+            "System.Private.CoreLib.dll"
         ]
 
 
