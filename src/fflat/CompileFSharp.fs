@@ -46,7 +46,7 @@ module References =
             "netstandard.dll"
             "System.Core.dll"
             "mscorlib.dll"
-            "System.Private.CoreLib.dll"
+            // "System.Private.CoreLib.dll"
         ]
 
 
@@ -99,9 +99,10 @@ let tryCompileToDll (options: Common.CompileOptions) (outputDllPath: string) fsx
             )
 
         match exitCode with
-        | 0 -> return projOpts
-        | _ ->
-            compileResult |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
+        | None -> return projOpts
+        | Some exn ->
+            stderr.WriteLine exn
+            compileResult |> Array.iter (fun v -> stderr.WriteLine $"%A{v}")
 
             return exit 1
     }
@@ -159,10 +160,10 @@ let watchCompileToDll (outputDllPath: string) (fsxFilePath: string) =
                         )
 
                     match exitCode with
-                    | 0 -> stdout.WriteLine $"compiled {outputDllPath}"
-                    | _ ->
-                        stdout.WriteLine $"error: "
-                        compileResult |> Array.iter (fun v -> stdout.WriteLine $"%A{v}")
+                    | None -> stdout.WriteLine $"compiled {outputDllPath}"
+                    | Some exn ->
+                        stderr.WriteLine exn
+                        compileResult |> Array.iter (fun v -> stderr.WriteLine $"%A{v}")
 
                     return! loop (nextproctime.AddSeconds(0.5))
             }
@@ -221,8 +222,9 @@ let tryCompileToInMemory (options:Common.CompileOptions) (memory: MemoryStream) 
             )
 
         match exitCode with
-        | 0 -> return projOpts
-        | _ ->
+        | None -> return projOpts
+        | Some exn ->
+            stderr.WriteLine exn
             compileResult |> Array.iter stderr.WriteLine
             return exit 1
     }

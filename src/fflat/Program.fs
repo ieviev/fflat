@@ -15,6 +15,7 @@ module Static =
 let loadNativeDependencies(appRoot: string) =
     let openLib(path: string) =
         let libpath = System.IO.Path.Combine(appRoot, path)
+
         match System.Runtime.InteropServices.NativeLibrary.TryLoad(libpath) with
         | true, _ -> ()
         | false, _ ->
@@ -149,6 +150,8 @@ let main argv =
     |> System.IO.Path.GetDirectoryName
     |> loadNativeDependencies
 
+
+
     let errorHandler =
         { new IExiter with
             member this.Exit(msg: string, errorCode: ErrorCode) =
@@ -163,6 +166,27 @@ let main argv =
 
     let results = parser.Parse(argv)
 
+    // if true then
+    //     let ms =
+    //         new MemoryStream("/mnt/ice/repos/fflat/flake-bin/fflat.dll" |> File.ReadAllBytes)
+    //     let exitCode: int =
+    //         Compiler.customBuildCommand (
+    //             createOptions BuildTargetType.Exe results,
+    //             ms,
+    //             "fflat",
+    //             // "lib",
+    //             [
+    //                 yield!
+    //                     Directory.EnumerateFiles("*.dll", "/mnt/ice/repos/fflat/flake-bin")
+    //                     |> Seq.map (fun v -> Path.GetFileNameWithoutExtension(v))
+    //             ],
+    //             // "liblib.so"
+    //             "/mnt/ice/repos/fflat/flake-bin/fflat-native"
+    //         )
+
+    //     failwith "OK"
+    //     ()
+
     if results.Contains CLIArguments.Version then
         let entry = System.Reflection.Assembly.GetEntryAssembly()
         stdout.WriteLine $"fflat version {entry.GetName().Version}"
@@ -170,7 +194,7 @@ let main argv =
     else
         let inputScript =
             match results.GetResult(CLIArguments.Main) with
-            | f when f.EndsWith(".fsx") || f.EndsWith(".fs") -> f
+            | f when f.EndsWith(".fsx") || f.EndsWith(".fs") || f.EndsWith(".fsproj") -> f
             | _ -> failwith "first argument must be a .fsx or .fs file"
 
         let buildTarget =

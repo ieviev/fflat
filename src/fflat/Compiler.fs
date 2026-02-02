@@ -75,6 +75,8 @@ let customBuildCommand
 
 
 
+    let disableCompilerGenerateHeuristics = false
+
     let logger =
         Logger(
             Console.Out,
@@ -84,7 +86,10 @@ let customBuildCommand
             false,
             Array.Empty<string>(),
             Array.Empty<string>(),
-            suppressedCategories = Array.Empty<string>()
+            Array.Empty<string>(),
+            false,
+            Dictionary<int, bool>(),
+            disableCompilerGenerateHeuristics
         )
 
     let genericsMode = SharedGenericsMode.CanonicalReferenceTypes
@@ -120,7 +125,7 @@ let customBuildCommand
     for reference in references do
         referenceFilePaths[Path.GetFileNameWithoutExtension(reference)] <- reference
 
-    let homePath = CommonOptions.HomePath
+    let mutable homePath = AppContext.BaseDirectory
     let mutable libPath = Environment.GetEnvironmentVariable("BFLAT_LIB")
 
     if
@@ -185,6 +190,7 @@ let customBuildCommand
     typeSystemContext.InputFilePaths <- Dictionary<string, string>()
     typeSystemContext.ReferenceFilePaths <- referenceFilePaths
 
+
     typeSystemContext.SetSystemModule(typeSystemContext.GetModuleForSimpleName(systemModuleName))
     let compiledAssembly = typeSystemContext.GetModuleForSimpleName(compiledModuleName)
 
@@ -235,7 +241,7 @@ let customBuildCommand
             new GenericRootProvider<obj>(
                 null,
                 fun _ rooter ->
-                    rooter.RootReadOnlyDataBlob(Array.zeroCreate<byte> 4, 4, "Trap threads", "RhpTrapThreads")
+                    rooter.RootReadOnlyDataBlob(Array.zeroCreate<byte> 4, 4, "Trap threads", "RhpTrapThreads", true)
             )
         )
 
@@ -310,12 +316,13 @@ let customBuildCommand
     for featurePair in featureSwitches do
         featureSwitches[featurePair.Key] <- featurePair.Value
 
-    let substitutions: BodyAndFieldSubstitutions = Operators.Unchecked.defaultof<_>
+    let mutable substitutions: BodyAndFieldSubstitutions = Operators.Unchecked.defaultof<_>
 
     let resourceBlocks: IReadOnlyDictionary<Internal.TypeSystem.ModuleDesc, IReadOnlySet<string>> =
         Operators.Unchecked.defaultof<_>
 
-    ilProvider <- FeatureSwitchManager(ilProvider, logger, featureSwitches, substitutions) :> ILProvider
+    let substitutionProvider = SubstitutionProvider(logger, featureSwitches, substitutions)
+    ilProvider <- SubstitutedILProvider(ilProvider, substitutionProvider, DevirtualizationManager()) :> ILProvider
 
     let stackTracePolicy: StackTraceEmissionPolicy =
         if disableStackTrace then
@@ -336,10 +343,6 @@ let customBuildCommand
 
         metadataGenerationOptions <-
             metadataGenerationOptions
-            ||| UsageBasedMetadataGenerationOptions.AnonymousTypeHeuristic
-
-        metadataGenerationOptions <-
-            metadataGenerationOptions
             ||| UsageBasedMetadataGenerationOptions.ReflectionILScanning
     else
         mdBlockingPolicy <- FullyBlockedMetadataBlockingPolicy()
@@ -349,7 +352,7 @@ let customBuildCommand
         DefaultDynamicInvokeThunkGenerationPolicy()
 
     let compilerGenerateState =
-        ILCompiler.Dataflow.CompilerGeneratedState(ilProvider, logger)
+        ILCompiler.Dataflow.CompilerGeneratedState(ilProvider, logger, disableCompilerGenerateHeuristics)
 
     let flowAnnotations =
         ILLink.Shared.TrimAnalysis.FlowAnnotations(logger, ilProvider, compilerGenerateState)
@@ -397,8 +400,8 @@ let customBuildCommand
         else
             TypePreinit.DisabledPreinitializationPolicy()
 
-    let preinitManager =
-        PreinitializationManager(typeSystemContext, compilationGroup, ilProvider, preinitPolicy)
+    let mutable preinitManager =
+        PreinitializationManager(typeSystemContext, compilationGroup, ilProvider, preinitPolicy, StaticReadOnlyFieldPolicy(), flowAnnotations)
 
     builder
         .UseILProvider(ilProvider)
@@ -449,7 +452,7 @@ let customBuildCommand
         else
             DependencyTrackingLevel.First
 
-    let foldMethodBodies = optimizationMode <> OptimizationMode.None
+    let foldMethodBodies = if optimizationMode <> OptimizationMode.None then MethodBodyFoldingMode.All else MethodBodyFoldingMode.None
 
     compilationRoots.Add(metadataManager)
     compilationRoots.Add(interopStubManager)
@@ -498,15 +501,18 @@ let customBuildCommand
         // If we're doing preinitialization, use a new preinitialization manager that
         // has the whole program view.
         if (preinitStatics) then
-            preinitManager = PreinitializationManager(
+            let readOnlyFieldPolicy = scanResults.GetReadOnlyFieldPolicy()
+            preinitManager <- PreinitializationManager(
                 typeSystemContext,
                 compilationGroup,
                 ilProvider,
-                scanResults.GetPreinitializationPolicy()
+                scanResults.GetPreinitializationPolicy(),
+                readOnlyFieldPolicy,
+                flowAnnotations
             )
-            |> ignore
 
             builder.UsePreinitializationManager(preinitManager) |> ignore
+            builder.UseReadOnlyFieldPolicy(readOnlyFieldPolicy) |> ignore
 
 
 
@@ -539,7 +545,7 @@ let customBuildCommand
     if nativeLib then
         let tgt = if targetOS = TargetOS.Windows then ".def" else ".txt"
         exportsFile <- Path.ChangeExtension(outputFilePath, tgt)
-        let defFileWriter = ExportsFileWriter(typeSystemContext, exportsFile, [])
+        let defFileWriter = ExportsFileWriter(typeSystemContext, exportsFile, Array.empty)
 
         for compilationRoot in compilationRoots do
             match compilationRoot with
@@ -612,9 +618,12 @@ let customBuildCommand
         //     ldArgs.Append("/debug ");
         if (stdlib = StandardLibType.DotNet) then
             ldArgs.Append(
-                "Runtime.WorkstationGC.lib System.IO.Compression.Native.Aot.lib System.Globalization.Native.Aot.lib "
+                "Runtime.WorkstationGC.lib System.IO.Compression.Native.Aot.lib System.Globalization.Native.Aot.lib aotminipal.lib zlibstatic.lib brotlicommon.lib brotlienc.lib brotlidec.lib standalonegc-disabled.lib "
             )
             |> ignore
+
+            if (targetArchitecture = Internal.TypeSystem.TargetArchitecture.X64) then
+                ldArgs.Append("Runtime.VxsortDisabled.lib ") |> ignore
         else
             ldArgs.Append("/merge:.modules=.rdata ") |> ignore
             ldArgs.Append("/merge:.managedcode=.text ") |> ignore
@@ -735,9 +744,12 @@ let customBuildCommand
 
             if (stdlib = StandardLibType.DotNet) then
                 ldArgs.Append(
-                    "-lstdc++compat -lRuntime.WorkstationGC -lSystem.IO.Compression.Native -lSystem.Security.Cryptography.Native.OpenSsl "
+                    "-lstdc++compat -lRuntime.WorkstationGC -lSystem.IO.Compression.Native -lSystem.Security.Cryptography.Native.OpenSsl -laotminipal -lz -lstandalonegc-disabled "
                 )
                 |> ignore
+
+                if (targetArchitecture = Internal.TypeSystem.TargetArchitecture.X64) then
+                    ldArgs.Append("-lRuntime.VxsortDisabled ") |> ignore
 
                 if (libc <> "bionic") then
                     ldArgs.Append("-lSystem.Globalization.Native -lSystem.Net.Security.Native ")

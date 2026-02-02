@@ -2,9 +2,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <BflatFramework>net8.0</BflatFramework>
-    <TargetFramework>net9.0</TargetFramework>
-    <!-- <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies> -->
+    <Deterministic>true</Deterministic>
+    <BflatFramework>net10.0</BflatFramework>
+    <TargetFramework>net10.0</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
   <ItemGroup>
@@ -54,10 +55,7 @@
     <Content Include="..\..\LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\bflat\layouts\linux-glibc-x64\**\*.*">
       <Pack>true</Pack>
-      <!-- <PackageCopyToOutput>true</PackageCopyToOutput> -->
       <PackagePath>\tools\$(TargetFramework)\any</PackagePath>
-      <!-- duplicates -->
-      <!-- <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory> -->
     </None>
     <!--  WINDOWS DEPENDENCIES START  -->
     <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\*.dll">
@@ -73,11 +71,11 @@
     <!--  WINDOWS DEPENDENCIES END  -->
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Argu" Version="6.2.4" />
+    <PackageReference Include="Argu" Version="6.2.5" />
     <!-- <PackageReference Include="dnlib" Version="4.4.0" /> -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.100" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.100" />
     <!-- dropped because outdated fsharp core -->
     <!-- <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.3" /> -->
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="System.CommandLine" Version="2.0.2" />
   </ItemGroup>
 </Project>

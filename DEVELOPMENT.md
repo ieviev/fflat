@@ -18,7 +18,7 @@ dotnet nuget add source "https://nuget.pkg.github.com/bflattened/index.json" --n
 then make sure bflat builds and compile layouts (takes a long time)
 
 ```bash
-dotnet build src/bflat/bflat.csproj -t:BuildLayouts
+dotnet build bflat/src/bflat/bflat.csproj -t:BuildLayouts
 ```
 
 then run the build script
