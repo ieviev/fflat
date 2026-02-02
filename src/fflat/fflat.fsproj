@@ -26,7 +26,7 @@
     <Authors>ieviev</Authors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fflat</ToolCommandName>
-    <Version>2.0.8</Version>
+    <Version>2.1.1</Version>
     <PackageReadmeFile>content/README.md</PackageReadmeFile>
     <PackageLicenseFile>content/LICENSE</PackageLicenseFile>
   </PropertyGroup>
@@ -48,7 +48,7 @@
   </Target>
   <!-- .so dependencies -->
   <ItemGroup>
-    <!-- <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts\linux-glibc-x64\*.so" Pack="true" PackagePath="runtimes/linux-x64/native/" /> -->
+    <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts\linux-glibc-x64\*.so" Pack="true" PackagePath="runtimes/linux-x64/native/" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
@@ -58,7 +58,7 @@
       <PackagePath>\tools\$(TargetFramework)\any</PackagePath>
     </None>
     <!--  WINDOWS DEPENDENCIES START  -->
-    <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\*.dll">
+    <!-- <None Include="$(MSBuildThisFileDirectory)../../bflat/layouts/windows-x64\*.dll">
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>tools/$(TargetFramework)/any/</PackagePath>
@@ -67,15 +67,12 @@
       <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>tools/$(TargetFramework)/any/bin/</PackagePath>
-    </None>
+    </None> -->
     <!--  WINDOWS DEPENDENCIES END  -->
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.2.5" />
-    <!-- <PackageReference Include="dnlib" Version="4.4.0" /> -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.10.100" />
-    <!-- dropped because outdated fsharp core -->
-    <!-- <PackageReference Include="FSharp.DependencyManager.Paket" Version="8.0.3" /> -->
     <PackageReference Include="System.CommandLine" Version="2.0.2" />
   </ItemGroup>
 </Project>
