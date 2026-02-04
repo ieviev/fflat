@@ -17,19 +17,19 @@ type BuildArgs =
 type CLIArguments =
     | [<AltCommandLine("-v"); Unique>] Verbose
     | Version
-    | Ldflags of string
     | [<Unique>] NoReflection
     | [<Unique>] Arch of Internal.TypeSystem.TargetArchitecture
     | [<Unique>] Stdlib of StandardLibType
     | [<Unique>] Os of TargetOS
     | [<Unique>] Optimize of OptimizationMode
+    | [<AltCommandLine("-F")>] LdFlag of string
     | [<AltCommandLine("-r")>] Reference of string
     | [<AltCommandLine("-s"); Unique>] Small
     | [<AltCommandLine("-o"); Unique>] Output of outputFile: string
     | [<CliPrefix(CliPrefix.None); Unique>] Build of ParseResults<BuildArgs>
     | [<CliPrefix(CliPrefix.None); Unique>] ``Build-il`` of ParseResults<BuildArgs>
     | [<CliPrefix(CliPrefix.None); Unique>] ``Build-shared`` of ParseResults<BuildArgs>
-    | [<MainCommand; First>] Main of script: string
+    | [<MainCommand>] Main of script: string
 
     interface IArgParserTemplate with
         member s.Usage =
@@ -41,7 +41,7 @@ type CLIArguments =
             | Main(_) -> ".fsx script file path (first argument)"
             | Output(outputFile) -> "output executable path"
             | ``Build-shared`` (_) -> "compile to shared library"
-            | Ldflags(_) -> "<ldflags>"
+            | LdFlag(_) -> "raw ld flag like '-static -lc'"
             | Arch(_) -> "<x64|arm64> "
             | Os(_) -> "<linux|windows|uefi>"
             | Verbose -> "verbose output"

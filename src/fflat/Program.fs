@@ -137,6 +137,7 @@ let createOptions target (arg: ParseResults<CLIArguments>) =
             arg.TryGetResult(CLIArguments.Optimize)
             |> Option.defaultValue OptimizationMode.PreferSpeed
         References = arg.GetResults(CLIArguments.Reference) |> Array.ofSeq
+        LdFlag = arg.GetResults(CLIArguments.LdFlag) |> Array.ofSeq
         Stdlib = arg.TryGetResult(CLIArguments.Stdlib) |> Option.defaultValue StandardLibType.DotNet
     }
 

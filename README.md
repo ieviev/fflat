@@ -11,7 +11,7 @@
 
 ```
 # install the dependencies (on a debian-based system)
-apt install -y libc++-dev
+apt install -y libc++-dev libbrotli-dev
 # install the global tool
 dotnet tool install --global fflat
 ```
@@ -69,7 +69,7 @@ OPTIONS:
 
     --verbose, -v         verbose output
     --version             version of application
-    --ldflags <string>    <ldflags>
+    --ldflag <string>    <ldflag>
     --noreflection        disable reflection
     --arch <unknown|arm|arm64|x64|x86|wasm32|loongarch64>
                           <x64|arm64>

@@ -75,10 +75,23 @@ let customBuildCommand
 
     let buildTargetType = options.Target
 
+    let env name =
+        Environment.GetEnvironmentVariable(name) |> Option.ofObj
+
     let ldFlags: string[] = [|
         yield! directPinvokes |> Seq.map (fun lib -> $"-l{lib}")
         if directPinvokes.Count > 0 then
             yield $"-L\"{System.Environment.CurrentDirectory}\""
+        match env "LDFLAGS" with
+        | Some ldflags ->
+            for ldflag in ldflags.Split(":") do
+                yield ldflag
+        | _ -> ()
+        match env "LIBRARY_PATH" with
+        | Some ldflags ->
+            for path in ldflags.Split(":") do
+                yield $"-L{path}"
+        | _ -> ()
     |]
 
 
@@ -104,6 +117,7 @@ let customBuildCommand
 
     // let targetIsa = "native"
     let targetIsa = null
+
     let instructionSetSupport =
         Helpers.ConfigureInstructionSetSupport(
             targetIsa,
@@ -202,10 +216,15 @@ let customBuildCommand
     typeSystemContext.SetSystemModule(typeSystemContext.GetModuleForSimpleName(systemModuleName))
     let compiledAssembly = typeSystemContext.GetModuleForSimpleName(compiledModuleName)
 
-    ilProvider <- HardwareIntrinsicILProvider(
-        instructionSetSupport,
-        ExternSymbolMappedField(typeSystemContext.GetWellKnownType(Internal.TypeSystem.WellKnownType.Int32), "g_cpuFeatures"),
-        ilProvider)
+    ilProvider <-
+        HardwareIntrinsicILProvider(
+            instructionSetSupport,
+            ExternSymbolMappedField(
+                typeSystemContext.GetWellKnownType(Internal.TypeSystem.WellKnownType.Int32),
+                "g_cpuFeatures"
+            ),
+            ilProvider
+        )
 
     // Initialize compilation group and compilation roots
     let initAssemblies = List<string>(seq { "System.Private.CoreLib" })
@@ -234,7 +253,9 @@ let customBuildCommand
     let compilationRoots = List<ICompilationRootProvider>()
 
     let mutable typeMapManager: TypeMapManager =
-        UsageBasedTypeMapManager(TypeMapMetadata.CreateFromAssembly(compiledAssembly :?> EcmaAssembly, typeSystemContext))
+        UsageBasedTypeMapManager(
+            TypeMapMetadata.CreateFromAssembly(compiledAssembly :?> EcmaAssembly, typeSystemContext)
+        )
 
     compilationRoots.Add(UnmanagedEntryPointsRootProvider(compiledAssembly))
 
@@ -258,7 +279,9 @@ let customBuildCommand
         )
 
     if (compiledAssembly :> Internal.TypeSystem.ModuleDesc <> typeSystemContext.SystemModule) then
-        compilationRoots.Add(UnmanagedEntryPointsRootProvider(typeSystemContext.SystemModule :?> EcmaModule, hidden = true))
+        compilationRoots.Add(
+            UnmanagedEntryPointsRootProvider(typeSystemContext.SystemModule :?> EcmaModule, hidden = true)
+        )
 
     compilationGroup <- SingleFileCompilationModuleGroup()
 
@@ -305,7 +328,8 @@ let customBuildCommand
                 "System.Linq.Expressions.CanEmitObjectArrayDelegate", false
                 "System.ComponentModel.DefaultValueAttribute.IsSupported", false
                 "System.ComponentModel.Design.IDesignerHost.IsSupported", false
-                "System.ComponentModel.TypeConverter.EnableUnsafeBinaryFormatterInDesigntimeLicenseContextSerialization", false
+                "System.ComponentModel.TypeConverter.EnableUnsafeBinaryFormatterInDesigntimeLicenseContextSerialization",
+                false
                 "System.ComponentModel.TypeDescriptor.IsComObjectDescriptorSupported", false
                 "System.Data.DataSet.XmlSerializationIsSupported", false
                 "System.Linq.Enumerable.IsSizeOptimized", true
@@ -328,6 +352,7 @@ let customBuildCommand
         featureSwitches.Add("System.Resources.UseSystemResourceKeys", true)
 
     let disableGlobalization = libc = "bionic"
+
     if disableGlobalization then
         featureSwitches.Add("System.Globalization.Invariant", true)
 
@@ -417,7 +442,14 @@ let customBuildCommand
             TypePreinit.DisabledPreinitializationPolicy()
 
     let mutable preinitManager =
-        PreinitializationManager(typeSystemContext, compilationGroup, ilProvider, preinitPolicy, StaticReadOnlyFieldPolicy(), flowAnnotations)
+        PreinitializationManager(
+            typeSystemContext,
+            compilationGroup,
+            ilProvider,
+            preinitPolicy,
+            StaticReadOnlyFieldPolicy(),
+            flowAnnotations
+        )
 
     builder
         .UseILProvider(ilProvider)
@@ -461,13 +493,18 @@ let customBuildCommand
         NullDebugInformationProvider() :> DebugInformationProvider
 
     let dgmlLogFileName = null
+
     let trackingLevel =
         if dgmlLogFileName = null then
             DependencyTrackingLevel.None
         else
             DependencyTrackingLevel.First
 
-    let foldMethodBodies = if optimizationMode <> OptimizationMode.None then MethodBodyFoldingMode.All else MethodBodyFoldingMode.None
+    let foldMethodBodies =
+        if optimizationMode <> OptimizationMode.None then
+            MethodBodyFoldingMode.All
+        else
+            MethodBodyFoldingMode.None
 
     compilationRoots.Add(metadataManager)
     compilationRoots.Add(interopStubManager)
@@ -492,9 +529,17 @@ let customBuildCommand
 
         substitutions.AppendFrom(scanResults.GetBodyAndFieldSubstitutions())
 
-        let newSubstitutionProvider = SubstitutionProvider(logger, featureSwitches, substitutions)
+        let newSubstitutionProvider =
+            SubstitutionProvider(logger, featureSwitches, substitutions)
 
-        ilProvider <- SubstitutedILProvider(unsubstitutedILProvider, newSubstitutionProvider, devirtualizationManager, metadataManager) :> ILProvider
+        ilProvider <-
+            SubstitutedILProvider(
+                unsubstitutedILProvider,
+                newSubstitutionProvider,
+                devirtualizationManager,
+                metadataManager
+            )
+            :> ILProvider
 
         builder.UseILProvider(ilProvider) |> ignore
 
@@ -503,8 +548,7 @@ let customBuildCommand
         builder.UseGenericDictionaryLayoutProvider(scanResults.GetDictionaryLayoutInfo())
         |> ignore
 
-        builder.UseDevirtualizationManager(devirtualizationManager)
-        |> ignore
+        builder.UseDevirtualizationManager(devirtualizationManager) |> ignore
 
         builder.UseInliningPolicy(scanResults.GetInliningPolicy()) |> ignore
 
@@ -513,14 +557,16 @@ let customBuildCommand
 
         if (preinitStatics) then
             let readOnlyFieldPolicy = scanResults.GetReadOnlyFieldPolicy()
-            preinitManager <- PreinitializationManager(
-                typeSystemContext,
-                compilationGroup,
-                ilProvider,
-                scanResults.GetPreinitializationPolicy(),
-                readOnlyFieldPolicy,
-                flowAnnotations
-            )
+
+            preinitManager <-
+                PreinitializationManager(
+                    typeSystemContext,
+                    compilationGroup,
+                    ilProvider,
+                    scanResults.GetPreinitializationPolicy(),
+                    readOnlyFieldPolicy,
+                    flowAnnotations
+                )
 
             builder.UsePreinitializationManager(preinitManager) |> ignore
             builder.UseReadOnlyFieldPolicy(readOnlyFieldPolicy) |> ignore
@@ -614,9 +660,9 @@ let customBuildCommand
             else
                 ldArgs.Append("/entry:__managed__Main ") |> ignore
 
-            // NoPie option would go here if enabled
-            // if (noPie && targetArchitecture <> TargetArchitecture.ARM64) then
-            //     ldArgs.Append("/fixed ") |> ignore
+        // NoPie option would go here if enabled
+        // if (noPie && targetArchitecture <> TargetArchitecture.ARM64) then
+        //     ldArgs.Append("/fixed ") |> ignore
 
         else if (buildTargetType = BuildTargetType.Shared) then
             ldArgs.Append("/dll ") |> ignore
@@ -627,6 +673,7 @@ let customBuildCommand
             ldArgs.Append($"/def:\"{exportsFile}\" ") |> ignore
 
         ldArgs.Append("/incremental:no ") |> ignore
+
         if (stdlib = StandardLibType.DotNet) then
             ldArgs.Append(
                 "Runtime.WorkstationGC.lib System.IO.Compression.Native.Aot.lib System.Globalization.Native.Aot.lib aotminipal.lib zlibstatic.lib brotlicommon.lib brotlienc.lib brotlidec.lib standalonegc-disabled.lib "
@@ -682,7 +729,10 @@ let customBuildCommand
                 )
                 |> ignore
 
-        ldArgs.Append("/opt:ref,icf /nodefaultlib:libcpmt.lib /nodefaultlib:libcmt.lib /nodefaultlib:oldnames.lib /nodefaultlib:uuid.lib ") |> ignore
+        ldArgs.Append(
+            "/opt:ref,icf /nodefaultlib:libcpmt.lib /nodefaultlib:libcmt.lib /nodefaultlib:oldnames.lib /nodefaultlib:uuid.lib "
+        )
+        |> ignore
 
     | _ -> // LINUX
         ldArgs.Append("-flavor ld ") |> ignore
@@ -755,7 +805,7 @@ let customBuildCommand
 
             if (stdlib = StandardLibType.DotNet) then
                 ldArgs.Append(
-                    "-lstdc++compat -lRuntime.WorkstationGC -lSystem.IO.Compression.Native -lSystem.Security.Cryptography.Native.OpenSsl -laotminipal -lz -lstandalonegc-disabled "
+                    "-lstdc++compat -lRuntime.WorkstationGC -lSystem.IO.Compression.Native -lSystem.Security.Cryptography.Native.OpenSsl -laotminipal -lz -lstandalonegc-disabled -lbrotlienc -lbrotlidec -lbrotlicommon "
                 )
                 |> ignore
 

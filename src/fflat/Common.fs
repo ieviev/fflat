@@ -44,4 +44,5 @@ type CompileOptions = {
     Arch: Internal.TypeSystem.TargetArchitecture
     OptimizationMode: OptimizationMode
     References: string[]
+    LdFlag: string[]
 }
