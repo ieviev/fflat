@@ -33,8 +33,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\bflat\src\bflat\bflat.csproj">
       <PrivateAssets>all</PrivateAssets>
-      <!-- <ExcludeAssets>contentFiles;runtime;native;build;buildTransitive;analyzers</ExcludeAssets> -->
-      <!-- <ExcludeAssets>contentFiles;runtime;native;build;analyzers</ExcludeAssets> -->
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>

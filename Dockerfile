@@ -7,13 +7,14 @@ RUN apt-get update && apt-get install -y \
     libbrotli-dev \
     libc++-dev \
     && rm -rf /var/lib/apt/lists/*
-RUN dotnet tool install --global fflat --version 2.1.2
+RUN dotnet tool install --global fflat --version 2.1.3
 WORKDIR /app
 ENV PATH=/root/.dotnet/tools:$PATH
-# ENTRYPOINT [ "/root/.dotnet/tools/fflat"]
-ENTRYPOINT [ "/bin/sh", "-c"]
+ENTRYPOINT [ "/root/.dotnet/tools/fflat"]
+
 # first build the container:
-# docker build -t fflat .
+# > docker build -t fflat .
 
 # then try compiling the hello world example
-# docker run --rm -ti -v ".:/app" fflat '/app/samples/helloworld.fsx'
+# > docker run --rm -ti -v ".:/app" fflat '/app/samples/helloworld.fsx'
+# now samples/helloworld should work!

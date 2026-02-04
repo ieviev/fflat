@@ -165,27 +165,6 @@ let main argv =
 
     let results = parser.Parse(argv)
 
-    // if true then
-    //     let ms =
-    //         new MemoryStream("/mnt/ice/repos/fflat/flake-bin/fflat.dll" |> File.ReadAllBytes)
-    //     let exitCode: int =
-    //         Compiler.customBuildCommand (
-    //             createOptions BuildTargetType.Exe results,
-    //             ms,
-    //             "fflat",
-    //             // "lib",
-    //             [
-    //                 yield!
-    //                     Directory.EnumerateFiles("*.dll", "/mnt/ice/repos/fflat/flake-bin")
-    //                     |> Seq.map (fun v -> Path.GetFileNameWithoutExtension(v))
-    //             ],
-    //             // "liblib.so"
-    //             "/mnt/ice/repos/fflat/flake-bin/fflat-native"
-    //         )
-
-    //     failwith "OK"
-    //     ()
-
     if results.Contains CLIArguments.Version then
         let entry = System.Reflection.Assembly.GetEntryAssembly()
         stdout.WriteLine $"fflat version {entry.GetName().Version}"
