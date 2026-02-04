@@ -150,8 +150,6 @@ let main argv =
     |> System.IO.Path.GetDirectoryName
     |> loadNativeDependencies
 
-
-
     let errorHandler =
         { new IExiter with
             member this.Exit(msg: string, errorCode: ErrorCode) =

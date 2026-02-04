@@ -28,6 +28,8 @@ let customBuildCommand
     let targetArchitecture = options.Arch
     let stdlib = options.Stdlib
     let optimizationMode = options.OptimizationMode
+    let disableStackTraceData = options.NoStackTrace || stdlib <> StandardLibType.DotNet
+    let disableReflection = options.NoReflection
 
     let toolSuffix, separator, tsTargetOs =
         if targetOS = TargetOS.Windows then
@@ -37,8 +39,7 @@ let customBuildCommand
 
     let mutable ilProvider: ILProvider = NativeAotILProvider()
 
-    let separateSymbols = true
-    let disableStackTrace = options.NoStackTrace
+    let stripSymbols = true
 
     let mutable libc =
         if targetOS = TargetOS.Linux then "glibc" // todo bionic
@@ -53,7 +54,14 @@ let customBuildCommand
         | _ -> compiledModuleName
 
     let supportsReflection =
-        not options.NoReflection && options.Stdlib = StandardLibType.DotNet
+        not disableReflection && systemModuleName = "System.Private.CoreLib"
+
+    // Configure SettingsTunnel for zerolib-like builds
+    if stdlib <> StandardLibType.DotNet then
+        SettingsTunnel.ZerolibLike <- true
+        SettingsTunnel.EmitGCInfo <- false
+        SettingsTunnel.EmitEHInfo <- false
+        SettingsTunnel.EmitGSCookies <- false
 
     let directPinvokes: ResizeArray<string> = ResizeArray()
 
@@ -194,24 +202,20 @@ let customBuildCommand
     typeSystemContext.SetSystemModule(typeSystemContext.GetModuleForSimpleName(systemModuleName))
     let compiledAssembly = typeSystemContext.GetModuleForSimpleName(compiledModuleName)
 
-    //
-    // Initialize compilation group and compilation roots
-    //
+    ilProvider <- HardwareIntrinsicILProvider(
+        instructionSetSupport,
+        ExternSymbolMappedField(typeSystemContext.GetWellKnownType(Internal.TypeSystem.WellKnownType.Int32), "g_cpuFeatures"),
+        ilProvider)
 
+    // Initialize compilation group and compilation roots
     let initAssemblies = List<string>(seq { "System.Private.CoreLib" })
 
-    if supportsReflection then
+    if not disableReflection && not disableStackTraceData then
         initAssemblies.Add("System.Private.StackTraceMetadata")
 
     initAssemblies.Add("System.Private.TypeLoader")
+    initAssemblies.Add("System.Private.Reflection.Execution")
 
-    if supportsReflection then
-        initAssemblies.Add("System.Private.Reflection.Execution")
-    else
-        initAssemblies.Add("System.Private.DisabledReflection")
-
-    // Build a list of assemblies that have an initializer that needs to run before
-    // any user code runs.
     let assembliesWithInitalizers = List<Internal.TypeSystem.ModuleDesc>()
 
     if (stdlib = StandardLibType.DotNet) then
@@ -228,6 +232,9 @@ let customBuildCommand
 
     let mutable compilationGroup: CompilationModuleGroup = Unchecked.defaultof<_>
     let compilationRoots = List<ICompilationRootProvider>()
+
+    let mutable typeMapManager: TypeMapManager =
+        UsageBasedTypeMapManager(TypeMapMetadata.CreateFromAssembly(compiledAssembly :?> EcmaAssembly, typeSystemContext))
 
     compilationRoots.Add(UnmanagedEntryPointsRootProvider(compiledAssembly))
 
@@ -251,7 +258,7 @@ let customBuildCommand
         )
 
     if (compiledAssembly :> Internal.TypeSystem.ModuleDesc <> typeSystemContext.SystemModule) then
-        compilationRoots.Add(UnmanagedEntryPointsRootProvider(typeSystemContext.SystemModule :?> EcmaModule))
+        compilationRoots.Add(UnmanagedEntryPointsRootProvider(typeSystemContext.SystemModule :?> EcmaModule, hidden = true))
 
     compilationGroup <- SingleFileCompilationModuleGroup()
 
@@ -295,26 +302,37 @@ let customBuildCommand
                 "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization", false
                 "System.Resources.ResourceManager.AllowCustomResourceTypes", false
                 "System.Text.Encoding.EnableUnsafeUTF7Encoding", false
-                "System.Runtime.Serialization.DataContractSerializer.IsReflectionOnly", true
-                "System.Xml.Serialization.XmlSerializer.IsReflectionOnly", true
-                "System.Xml.XmlResolver.IsNetworkingEnabledByDefault", false
-                "System.Linq.Expressions.CanCompileToIL", false
                 "System.Linq.Expressions.CanEmitObjectArrayDelegate", false
-                "System.Linq.Expressions.CanCreateArbitraryDelegates", false
+                "System.ComponentModel.DefaultValueAttribute.IsSupported", false
+                "System.ComponentModel.Design.IDesignerHost.IsSupported", false
+                "System.ComponentModel.TypeConverter.EnableUnsafeBinaryFormatterInDesigntimeLicenseContextSerialization", false
+                "System.ComponentModel.TypeDescriptor.IsComObjectDescriptorSupported", false
+                "System.Data.DataSet.XmlSerializationIsSupported", false
+                "System.Linq.Enumerable.IsSizeOptimized", true
+                "System.Net.SocketsHttpHandler.Http3Support", false
+                "System.Reflection.Metadata.MetadataUpdater.IsSupported", false
+                "System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported", false
+                "System.Runtime.InteropServices.BuiltInComInterop.IsSupported", false
+                "System.Runtime.InteropServices.EnableConsumingManagedCodeFromNativeHosting", false
+                "System.Runtime.InteropServices.EnableCppCLIHostActivation", false
+                "System.Runtime.InteropServices.Marshalling.EnableGeneratedComInterfaceComImportInterop", false
+                "System.StartupHookProvider.IsSupported", false
+                "System.Text.Json.JsonSerializer.IsReflectionEnabledByDefault", false
+                "System.Threading.Thread.EnableAutoreleasePool", false
+                "System.Threading.ThreadPool.UseWindowsThreadPool", true
+                "System.Globalization.PredefinedCulturesOnly", true
             ]
         )
 
-    // always disable globalization
-    featureSwitches.Add("System.Globalization.Invariant", true)
-
-    if (not supportsReflection) then
+    if disableReflection then
         featureSwitches.Add("System.Resources.UseSystemResourceKeys", true)
-        featureSwitches.Add("System.Collections.Generic.DefaultComparers", false)
-        featureSwitches.Add("System.Reflection.IsReflectionExecutionAvailable", false)
 
+    let disableGlobalization = libc = "bionic"
+    if disableGlobalization then
+        featureSwitches.Add("System.Globalization.Invariant", true)
 
-    for featurePair in featureSwitches do
-        featureSwitches[featurePair.Key] <- featurePair.Value
+    if disableStackTraceData then
+        featureSwitches.Add("System.Diagnostics.StackTrace.IsSupported", false)
 
     let mutable substitutions: BodyAndFieldSubstitutions = Operators.Unchecked.defaultof<_>
 
@@ -322,10 +340,11 @@ let customBuildCommand
         Operators.Unchecked.defaultof<_>
 
     let substitutionProvider = SubstitutionProvider(logger, featureSwitches, substitutions)
+    let unsubstitutedILProvider = ilProvider
     ilProvider <- SubstitutedILProvider(ilProvider, substitutionProvider, DevirtualizationManager()) :> ILProvider
 
     let stackTracePolicy: StackTraceEmissionPolicy =
-        if disableStackTrace then
+        if disableStackTraceData then
             NoStackTraceEmissionPolicy()
         else
             EcmaMethodStackTraceEmissionPolicy() :> (StackTraceEmissionPolicy)
@@ -388,10 +407,7 @@ let customBuildCommand
     let mutable interopStubManager: InteropStubManager =
         UsageBasedInteropStubManager(interopStateManager, pinvokePolicy, logger)
 
-    // We enable scanner for retail builds by default.
     let useScanner = optimizationMode <> OptimizationMode.None
-
-    // Enable static data preinitialization in optimized builds.
     let preinitStatics = optimizationMode <> OptimizationMode.None
 
     let preinitPolicy: TypePreinit.TypePreinitializationPolicy =
@@ -406,6 +422,7 @@ let customBuildCommand
     builder
         .UseILProvider(ilProvider)
         .UsePreinitializationManager(preinitManager)
+        .UseTypeMapManager(typeMapManager)
         .UseResilience(true)
     |> ignore
 
@@ -421,6 +438,7 @@ let customBuildCommand
                 .UseCompilationRoots(compilationRoots)
                 .UseMetadataManager(metadataManager)
                 .UseInteropStubManager(interopStubManager)
+                .UseTypeMapManager(typeMapManager)
                 .UseLogger(logger)
 
         let scanDgmlLogFileName = null
@@ -432,20 +450,17 @@ let customBuildCommand
 
         scanResults <- scanner.Scan()
 
-        // if (scanDgmlLogFileName <> null) then
-        //     scanResults.WriteDependencyLog(scanDgmlLogFileName)
+        if (scanDgmlLogFileName <> null) then
+            scanResults.WriteDependencyLog(scanDgmlLogFileName)
 
         metadataManager <- (metadataManager :?> UsageBasedMetadataManager).ToAnalysisBasedMetadataManager()
 
         interopStubManager <- scanResults.GetInteropStubManager(interopStateManager, pinvokePolicy)
 
-    let debugInfoProvider =
-        // if debugInfoFormat = 0 then new NullDebugInformationProvider() else new DebugInformationProvider();
-        // if debugInfoFormat = 0 then new NullDebugInformationProvider() else new DebugInformationProvider()
-        NullDebugInformationProvider()
+    let debugInfoProvider: DebugInformationProvider =
+        NullDebugInformationProvider() :> DebugInformationProvider
 
     let dgmlLogFileName = null
-    // result.GetValueForOption(MstatOption) ? Path.ChangeExtension(outputFilePath, ".codegen.dgml.xml") : null; ;
     let trackingLevel =
         if dgmlLogFileName = null then
             DependencyTrackingLevel.None
@@ -471,35 +486,31 @@ let customBuildCommand
 
 
     if (scanResults <> null) then
-        // If we have a scanner, feed the vtable analysis results to the compilation.
-        // This could be a command line switch if we really wanted to.
+        let devirtualizationManager = scanResults.GetDevirtualizationManager()
+
+        builder.UseTypeMapManager(scanResults.GetTypeMapManager()) |> ignore
+
+        substitutions.AppendFrom(scanResults.GetBodyAndFieldSubstitutions())
+
+        let newSubstitutionProvider = SubstitutionProvider(logger, featureSwitches, substitutions)
+
+        ilProvider <- SubstitutedILProvider(unsubstitutedILProvider, newSubstitutionProvider, devirtualizationManager, metadataManager) :> ILProvider
+
+        builder.UseILProvider(ilProvider) |> ignore
+
         builder.UseVTableSliceProvider(scanResults.GetVTableLayoutInfo()) |> ignore
 
-        // If we have a scanner, feed the generic dictionary results to the compilation.
-        // This could be a command line switch if we really wanted to.
         builder.UseGenericDictionaryLayoutProvider(scanResults.GetDictionaryLayoutInfo())
         |> ignore
 
-        // If we have a scanner, we can drive devirtualization using the information
-        // we collected at scanning time (effectively sealing unsealed types if possible).
-        // This could be a command line switch if we really wanted to.
-        builder.UseDevirtualizationManager(scanResults.GetDevirtualizationManager())
+        builder.UseDevirtualizationManager(devirtualizationManager)
         |> ignore
 
-        // If we use the scanner's result, we need to consult it to drive inlining.
-        // This prevents e.g. devirtualizing and inlining methods on types that were
-        // never actually allocated.
         builder.UseInliningPolicy(scanResults.GetInliningPolicy()) |> ignore
 
-        // Use an error provider that prevents us from re-importing methods that failed
-        // to import with an exception during scanning phase. We would see the same failure during
-        // compilation, but before RyuJIT gets there, it might ask questions that we don't
-        // have answers for because we didn't scan the entire method.
         builder.UseMethodImportationErrorProvider(scanResults.GetMethodImportationErrorProvider())
         |> ignore
 
-        // If we're doing preinitialization, use a new preinitialization manager that
-        // has the whole program view.
         if (preinitStatics) then
             let readOnlyFieldPolicy = scanResults.GetReadOnlyFieldPolicy()
             preinitManager <- PreinitializationManager(
@@ -520,12 +531,6 @@ let customBuildCommand
 
     let dumpers = List<ObjectDumper>()
 
-    // if (mapFileName <> null) then
-    //     dumpers.Add(new XmlObjectDumper(mapFileName));
-    //
-    // if (mstatFileName <> null) then
-    //     dumpers.Add(new MstatObjectDumper(mstatFileName, typeSystemContext));
-
     let objectFilePath =
         let ext =
             match targetOS with
@@ -538,7 +543,6 @@ let customBuildCommand
 
     let compilationResults =
         compilation.Compile(objectFilePath, ObjectDumper.Compose(dumpers))
-    // compilationResults.
 
     let mutable exportsFile: string = null
 
@@ -549,7 +553,7 @@ let customBuildCommand
 
         for compilationRoot in compilationRoots do
             match compilationRoot with
-            | :? UnmanagedEntryPointsRootProvider as provider ->
+            | :? UnmanagedEntryPointsRootProvider as provider when not provider.Hidden ->
                 defFileWriter.AddExportedMethods(provider.ExportedMethods)
             | _ -> ()
 
@@ -558,6 +562,14 @@ let customBuildCommand
 
     typeSystemContext.LogWarnings(logger)
 
+    if (dgmlLogFileName <> null) then
+        compilationResults.WriteDependencyLog(dgmlLogFileName)
+
+    match box debugInfoProvider with
+    | :? IDisposable as d -> d.Dispose()
+    | _ -> ()
+
+    preinitManager.LogStatistics(logger)
 
     let ld =
         match Environment.GetEnvironmentVariable("BFLAT_LD") with
@@ -602,8 +614,9 @@ let customBuildCommand
             else
                 ldArgs.Append("/entry:__managed__Main ") |> ignore
 
-        // if (result.GetValueForOption(NoPieOption) && targetArchitecture <> TargetArchitecture.ARM64) then
-        //     ldArgs.Append("/fixed ") |> ignore
+            // NoPie option would go here if enabled
+            // if (noPie && targetArchitecture <> TargetArchitecture.ARM64) then
+            //     ldArgs.Append("/fixed ") |> ignore
 
         else if (buildTargetType = BuildTargetType.Shared) then
             ldArgs.Append("/dll ") |> ignore
@@ -614,8 +627,6 @@ let customBuildCommand
             ldArgs.Append($"/def:\"{exportsFile}\" ") |> ignore
 
         ldArgs.Append("/incremental:no ") |> ignore
-        // if (debugInfoFormat <> 0) then
-        //     ldArgs.Append("/debug ");
         if (stdlib = StandardLibType.DotNet) then
             ldArgs.Append(
                 "Runtime.WorkstationGC.lib System.IO.Compression.Native.Aot.lib System.Globalization.Native.Aot.lib aotminipal.lib zlibstatic.lib brotlicommon.lib brotlienc.lib brotlidec.lib standalonegc-disabled.lib "
@@ -671,16 +682,15 @@ let customBuildCommand
                 )
                 |> ignore
 
-                ldArgs.Append("kernel32-supplements.lib ") |> ignore
+        ldArgs.Append("/opt:ref,icf /nodefaultlib:libcpmt.lib /nodefaultlib:libcmt.lib /nodefaultlib:oldnames.lib /nodefaultlib:uuid.lib ") |> ignore
 
-        ldArgs.Append("/opt:ref,icf /nodefaultlib:libcpmt.lib ") |> ignore
-
-    | _ -> // LINUx
+    | _ -> // LINUX
         ldArgs.Append("-flavor ld ") |> ignore
 
         let mutable firstLib = null
 
-        for lpath in libPath.Split(separator) |> Seq.take 1 do
+        // Add all lib paths, not just the first one
+        for lpath in libPath.Split(separator) do
             ldArgs.AppendFormat("-L\"{0}\" ", lpath) |> ignore
 
             if (firstLib = null) then
@@ -733,11 +743,12 @@ let customBuildCommand
 
             ldArgs.Append("-shared ") |> ignore
             ldArgs.Append($"--version-script=\"{exportsFile}\" ") |> ignore
-        else if (stdlib = StandardLibType.DotNet) then
-            ldArgs.Append($"\"{firstLib}/libbootstrapper.o\" ") |> ignore
+        else
+            if (stdlib = StandardLibType.DotNet) then
+                ldArgs.Append($"\"{firstLib}/libbootstrapper.o\" ") |> ignore
 
-        // if (!result.GetValueForOption(NoPieOption)) then
-        //     ldArgs.Append("-pie ");
+            // Enable PIE by default (matching C# behavior)
+            ldArgs.Append("-pie ") |> ignore
 
         if (stdlib <> StandardLibType.None) then
             ldArgs.Append("-lSystem.Native ") |> ignore
@@ -800,36 +811,16 @@ let customBuildCommand
             ()
 
     match exitCode with
-    | 0 when (targetOS <> TargetOS.Windows && targetOS <> TargetOS.UEFI && separateSymbols) ->
+    | 0 when (targetOS <> TargetOS.Windows && targetOS <> TargetOS.UEFI && stripSymbols) ->
         if logger.IsVerbose then
-            logger.LogMessage("Running objcopy")
+            logger.LogMessage("Stripping symbols")
 
         let mutable objcopy = Environment.GetEnvironmentVariable("BFLAT_OBJCOPY")
 
         if (objcopy = null) then
             objcopy <- Path.Combine(homePath, "bin", "llvm-objcopy" + toolSuffix)
 
-        exitCode <-
-            // runCommand (objcopy, $"--only-keep-debug \"{outputFilePath}\" \"{outputFilePath}.dwo\"", printCommands)
-            runCommand (objcopy, $"--only-keep-debug \"{outputFilePath}\"", printCommands)
-
-        if (exitCode <> 0) then
-            exitCode
-        else
-
         exitCode <- runCommand (objcopy, $"--strip-debug --strip-unneeded \"{outputFilePath}\"", printCommands)
-
-        if (exitCode <> 0) then
-            exitCode
-        else
-
-        exitCode <-
-            // runCommand (objcopy, $"--add-gnu-debuglink=\"{outputFilePath}.dwo\" \"{outputFilePath}\"", printCommands)
-            runCommand (objcopy, $"\"{outputFilePath}\"", printCommands)
-
-        if (exitCode <> 0) then
-            exitCode
-        else
 
         exitCode
     | _ -> exitCode
