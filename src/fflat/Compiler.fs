@@ -746,6 +746,17 @@ let customBuildCommand
             if (firstLib = null) then
                 firstLib <- lpath
 
+        let hostArch =
+            match RuntimeInformation.ProcessArchitecture with
+            | Architecture.Arm64 -> Internal.TypeSystem.TargetArchitecture.ARM64
+            | _ -> Internal.TypeSystem.TargetArchitecture.X64
+
+        if (targetOS = TargetOS.Linux && libc = "glibc" && hostArch = targetArchitecture) then
+            let archTriple = if (targetArchitecture = Internal.TypeSystem.TargetArchitecture.ARM64) then "aarch64-linux-gnu" else "x86_64-linux-gnu"
+
+            ldArgs.Append($"-L/usr/lib/{archTriple} -L/usr/lib64 -L/usr/local/lib -L/usr/lib ")
+            |> ignore
+
         ldArgs.Append("-z now -z relro -z noexecstack --hash-style=gnu --eh-frame-hdr ")
         |> ignore
 

@@ -24,9 +24,8 @@ cp -r "$LAYOUT_DIR/lib64" "$OutputPath"
 cp -r "$LAYOUT_DIR/bin" "$OutputPath"
 
 # # 
-cp "$LAYOUT_DIR/libobjwriter.so" "$OutputPath"
-cp "$LAYOUT_DIR/libjitinterface_x64.so" "$OutputPath"
-cp "$LAYOUT_DIR/libclrjit_win_x64_x64.so" "$OutputPath"
-cp "$LAYOUT_DIR/libclrjit_unix_x64_x64.so" "$OutputPath"
-cp "$LAYOUT_DIR/libclrjit_universal_arm64_x64.so" "$OutputPath"
-cp "$LAYOUT_DIR/WindowsAPIs.txt" "$OutputPath"
+for f in libobjwriter.so libjitinterface_x64.so libclrjit_win_x64_x64.so libclrjit_unix_x64_x64.so libclrjit_universal_arm64_x64.so WindowsAPIs.txt; do
+    if [ -e "$LAYOUT_DIR/$f" ]; then
+        cp "$LAYOUT_DIR/$f" "$OutputPath"
+    fi
+done

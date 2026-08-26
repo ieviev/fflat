@@ -26,10 +26,16 @@ let loadNativeDependencies(appRoot: string) =
                 stderr.WriteLine $"failed to find native library, set LD_LIBRARY_PATH to find {path} in {appRoot}"
                 exit 1
 
+    let openOptionalLib(path: string) =
+        let libpath = System.IO.Path.Combine(appRoot, path)
+
+        if File.Exists(libpath) then
+            openLib path
+
     // todo: unsure where it crashes on windows
     if OperatingSystem.IsLinux() then
         openLib "lib64/libc++.so.1"
-        openLib "libobjwriter.so"
+        openOptionalLib "libobjwriter.so" // not shipped by bflat SDKs anymore, preload only if present
         openLib "libjitinterface_x64.so"
 
 
