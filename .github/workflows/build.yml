@@ -18,6 +18,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      LAYOUT_HOST: linux-glibc-x64
 
     steps:
       - uses: actions/checkout@v7
@@ -37,11 +39,42 @@ jobs:
       - name: patch bflat
         run: bash build.sh
 
+      - name: bflat revision
+        id: bflat
+        run: echo "sha=$(git -C bflat rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: cache bflat layout
+        id: bflat-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            bflat/layouts/${{ env.LAYOUT_HOST }}
+            bflat/src/bflat/obj/*.zip
+          key: bflat-${{ runner.os }}-${{ env.LAYOUT_HOST }}-${{ steps.bflat.outputs.sha }}-${{ hashFiles('bflat/src/bflat/bflat.csproj') }}
+
+      - name: verify cached bflat layout
+        if: steps.bflat-cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          layout="bflat/layouts/${{ env.LAYOUT_HOST }}"
+          test -d "$layout"
+          test -d "$layout/lib"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            test -f "$layout/bflat.exe"
+          else
+            test -f "$layout/bflat"
+          fi
+
       - name: build bflat layouts
-        run: dotnet build bflat/src/bflat/bflat.csproj -t:BuildLayouts -p:CompilerHost=linux-glibc-x64
+        if: steps.bflat-cache.outputs.cache-hit != 'true'
+        run: |
+          dotnet build bflat/src/bflat/bflat.csproj -t:BuildLayouts \
+            -p:CompilerHost=${{ env.LAYOUT_HOST }} \
+            -p:FflatLayoutHost=${{ env.LAYOUT_HOST }} \
+            -p:CustomAfterMicrosoftCommonTargets="${{ github.workspace }}/build/fflat-layout.targets"
 
       - name: build fflat
-        run: dotnet build src/fflat/fflat.fsproj -p:CompilerHost=linux-glibc-x64
+        run: dotnet build src/fflat/fflat.fsproj -p:CompilerHost=${{ env.LAYOUT_HOST }}
 
       - name: smoke test
         run: |
@@ -56,7 +89,7 @@ jobs:
           test "$output" = "hello world"
 
       - name: pack
-        run: dotnet pack src/fflat/fflat.fsproj -c Release -p:CompilerHost=linux-glibc-x64
+        run: dotnet pack src/fflat/fflat.fsproj -c Release -p:CompilerHost=${{ env.LAYOUT_HOST }}
 
       - uses: actions/upload-artifact@v4
         with:
