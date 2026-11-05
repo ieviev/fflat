@@ -26,7 +26,7 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -74,24 +74,26 @@ jobs:
             -p:CustomAfterMicrosoftCommonTargets="${{ github.workspace }}/build/fflat-layout.targets"
 
       - name: build fflat
-        run: dotnet build src/fflat/fflat.fsproj -p:CompilerHost=${{ env.LAYOUT_HOST }}
+        run: dotnet build src/fflat/fflat.fsproj -c Release -p:CompilerHost=${{ env.LAYOUT_HOST }}
 
       - name: smoke test
         run: |
-          dotnet src/fflat/bin/Debug/net10.0/fflat.dll samples/helloworld.fsx -o samples/helloworld-test.exe
+          dotnet src/fflat/bin/Release/net10.0/fflat.dll samples/helloworld.fsx -o samples/helloworld-test.exe
           output=$(./samples/helloworld-test.exe | tr -d '\r')
           test "$output" = "hello world! 1123"
 
       - name: zerolib smoke test
         run: |
-          dotnet src/fflat/bin/Debug/net10.0/fflat.dll samples/zerolib_16kb.fsx --stdlib zero -o samples/zerolib-test
+          dotnet src/fflat/bin/Release/net10.0/fflat.dll samples/zerolib_16kb.fsx --stdlib zero -o samples/zerolib-test
           output=$(./samples/zerolib-test)
           test "$output" = "hello world"
 
-      - name: pack
-        run: dotnet pack src/fflat/fflat.fsproj -c Release -p:CompilerHost=${{ env.LAYOUT_HOST }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: fflat-nupkg-linux
-          path: src/fflat/nupkg/*.nupkg
+      # Packaging/upload is disabled
+      # in this workflow. Releases are handled by the publish workflow.
+      # - name: pack
+      #   run: dotnet pack src/fflat/fflat.fsproj -c Release -p:CompilerHost=${{ env.LAYOUT_HOST }}
+      #
+      # - uses: actions/upload-artifact@v7
+      #   with:
+      #     name: fflat-nupkg-linux
+      #     path: src/fflat/nupkg/*.nupkg
