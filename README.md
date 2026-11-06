@@ -90,7 +90,7 @@ OPTIONS:
 
 there is almost a 1000x difference in startup time for dotnet fsi scripts using nuget!
 
-![](img/2023-10-09T17:12.png)
+![](img/2023-10-09T17-12.png)
 
 there is also [FSharpPacker](https://github.com/kant2002/FSharpPacker/tree/main) for .fsx scripts, which compiles .fsx scripts to native executables using the standard MSBuild pipeline (PublishAOT), but [bflat](https://flattened.net/) can produce significantly smaller executables or even omit the .NET runtime/GC all together.
 

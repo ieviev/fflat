@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    Limit bflat's BuildLayouts target to a single host.
+
+    Pass -p:FflatLayoutHost=<host> and
+    -p:CustomAfterMicrosoftCommonTargets=<absolute path to this file>.
+    Without FflatLayoutHost, bflat builds all of its supported hosts.
+  -->
+  <ItemGroup Condition="'$(FflatLayoutHost)' != ''">
+    <SupportedHost Remove="windows-x64" Condition="'$(FflatLayoutHost)' != 'windows-x64'" />
+    <SupportedHost Remove="windows-arm64" Condition="'$(FflatLayoutHost)' != 'windows-arm64'" />
+    <SupportedHost Remove="linux-glibc-x64" Condition="'$(FflatLayoutHost)' != 'linux-glibc-x64'" />
+    <SupportedHost Remove="linux-glibc-arm64" Condition="'$(FflatLayoutHost)' != 'linux-glibc-arm64'" />
+  </ItemGroup>
+</Project>

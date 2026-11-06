@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureBflatInternalsVisible">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <Deterministic>true</Deterministic>
@@ -39,9 +39,15 @@
     <FSharpDir>$(MSBuildBinPath)/FSharp/</FSharpDir>
     <FsiDll>$(MSBuildBinPath)/FSharp/FSharp.Compiler.Interactive.Settings.dll</FsiDll>
   </PropertyGroup>
+  <Target Name="EnsureBflatInternalsVisible">
+    <Exec Command="bash '$(MSBuildThisFileDirectory)../../build.sh'" Condition="'$(OS)' != 'Windows_NT'" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)../../build.ps1&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+  </Target>
+
   <Target Name="PostBuildTask" AfterTargets="AfterBuild">
     <Message Importance="High" Text="copying native assemblies to build dir" />
-    <Exec Command="bash $(ProjectDir)postbuild.sh '$(OutputPath)' '$(Configuration)' '$(TargetFramework)' '$(BflatFramework)'" Condition="'$(OS)' != 'Windows_NT'" />
+    <Exec Command="bash '$(ProjectDir)postbuild.sh' '$(OutputPath)' '$(Configuration)' '$(TargetFramework)' '$(BflatFramework)'" Condition="'$(OS)' != 'Windows_NT'" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(ProjectDir)postbuild.ps1&quot; -OutputPath &quot;$(OutputPath)&quot;" Condition="'$(OS)' == 'Windows_NT'" />
     <Copy SourceFiles="$(FsiDll)" DestinationFolder="$(OutputPath)" />
   </Target>
   <!-- .so dependencies -->

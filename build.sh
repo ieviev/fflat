@@ -3,7 +3,7 @@
 set -euo pipefail
 __SOURCE_DIRECTORY__=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-if test -e "bflat/src/bflat/bflat.csproj"; then
+if test -e "$__SOURCE_DIRECTORY__/bflat/src/bflat/bflat.csproj"; then
     echo "bflat proj exists ok"
 else
     echo "bflat submodule does not exist"
@@ -13,18 +13,13 @@ else
 fi
 
 
-if grep -q '<InternalsVisibleTo Include="fflat"/>' "bflat/src/bflat/bflat.csproj"; then
+BF_PROJ="$__SOURCE_DIRECTORY__/bflat/src/bflat/bflat.csproj"
+
+if grep -q '<InternalsVisibleTo Include="fflat"/>' "$BF_PROJ"; then
     echo "bflat internals visible ok"
 else
-    echo "bflat internals not visible to fflat, adding entry to bflat/src/bflat/bflat.csproj"
-    cat bflat/src/bflat/bflat.csproj \
-        | sed -E 's|(<Project>)|\1<ItemGroup><InternalsVisibleTo Include="fflat"/></ItemGroup>|g' \
-        | tee bflat/src/bflat/bflat.csproj > /dev/null
+    echo "bflat internals not visible to fflat, adding entry to $BF_PROJ"
+    sed -i -E 's|(<Project>)|\1<ItemGroup><InternalsVisibleTo Include="fflat"/></ItemGroup>|' "$BF_PROJ"
 fi
-
-echo ""
-echo "NOTE:" 
-echo "  the project currently only builds on linux/wsl because it runs some .sh scripts to move/modify files"
-echo "  if you want to build on windows, you'll need to run the tasks in src/fflat/postbuild.sh yourself"
 
 

@@ -1,0 +1,113 @@
+name: build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            host: linux-glibc-x64
+            patch: bash build.sh
+          - os: windows-latest
+            host: windows-x64
+            patch: powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: install native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libc++-dev libbrotli-dev
+
+      - name: configure bflat nuget source
+        run: dotnet nuget add source "https://nuget.pkg.github.com/bflattened/index.json" --name bflat --username "${{ github.actor }}" --password "${{ secrets.GITHUB_TOKEN }}" --store-password-in-clear-text
+
+      - name: patch bflat
+        run: ${{ matrix.patch }}
+
+      - name: bflat revision
+        id: bflat
+        shell: bash
+        run: echo "sha=$(git -C bflat rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: cache bflat layout
+        id: bflat-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            bflat/layouts/${{ matrix.host }}
+            bflat/src/bflat/obj/*.zip
+          key: bflat-${{ runner.os }}-${{ matrix.host }}-${{ steps.bflat.outputs.sha }}-${{ hashFiles('bflat/src/bflat/bflat.csproj') }}
+
+      - name: verify cached bflat layout
+        if: steps.bflat-cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          layout="bflat/layouts/${{ matrix.host }}"
+          test -d "$layout"
+          test -d "$layout/lib"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            test -f "$layout/bflat.exe"
+          else
+            test -f "$layout/bflat"
+          fi
+
+      - name: build bflat layouts
+        if: steps.bflat-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          dotnet build bflat/src/bflat/bflat.csproj -t:BuildLayouts \
+            -p:CompilerHost=${{ matrix.host }} \
+            -p:FflatLayoutHost=${{ matrix.host }} \
+            -p:CustomAfterMicrosoftCommonTargets="${{ github.workspace }}/build/fflat-layout.targets"
+
+      - name: build fflat
+        run: dotnet build src/fflat/fflat.fsproj -c Release -p:CompilerHost=${{ matrix.host }}
+
+      - name: smoke test
+        shell: bash
+        run: |
+          dotnet src/fflat/bin/Release/net10.0/fflat.dll samples/helloworld.fsx -o samples/helloworld-test.exe
+          output=$(./samples/helloworld-test.exe | tr -d '\r')
+          test "$output" = "hello world! 1123"
+
+      - name: zerolib smoke test
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          dotnet src/fflat/bin/Release/net10.0/fflat.dll samples/zerolib_16kb.fsx --stdlib zero -o samples/zerolib-test
+          output=$(./samples/zerolib-test)
+          test "$output" = "hello world"
+
+      # Packaging/upload is disabled
+      # - name: pack
+      #   run: dotnet pack src/fflat/fflat.fsproj -c Release -p:CompilerHost=${{ matrix.host }}
+      #
+      # - uses: actions/upload-artifact@v7
+      #   with:
+      #     name: fflat-nupkg-${{ matrix.host }}
+      #     path: src/fflat/nupkg/*.nupkg
