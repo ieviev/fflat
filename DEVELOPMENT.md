@@ -21,30 +21,28 @@ on Linux/WSL, install the native link dependencies:
 sudo apt-get install -y libc++-dev libbrotli-dev
 ```
 
-run the build script (it adds `InternalsVisibleTo` and checks the submodule):
+then run the patch script (`build.sh` on Linux, `build.ps1` on Windows):
 
 ```bash
 ./build.sh
 ```
 
-the native-assembly copy step is handled automatically by `postbuild.sh` during build.
-
-then make sure bflat builds and compile layouts (takes a long time):
+then make sure bflat builds and compile layouts (takes a long time)
 
 ```bash
-dotnet build bflat/src/bflat/bflat.csproj -t:BuildLayouts -p:CompilerHost=linux-glibc-x64
+dotnet build bflat/src/bflat/bflat.csproj -t:BuildLayouts
 ```
 
-then the project should compile and run:
+after this the project should compile and run (native dependencies are copied automatically during build)
 
 ```bash
-dotnet build src/fflat/fflat.fsproj -p:CompilerHost=linux-glibc-x64
+dotnet build src/fflat/fflat.fsproj
 ```
 
 to install locally as a global tool:
 
 ```bash
-dotnet pack src/fflat/fflat.fsproj -c Release -p:CompilerHost=linux-glibc-x64
+dotnet pack src/fflat/fflat.fsproj -c Release
 dotnet tool uninstall --global fflat
 dotnet tool install --global fflat --add-source src/fflat/nupkg
 ```
